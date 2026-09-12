@@ -9,7 +9,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import br.com.fiap.vagazero.identidade.domain.CredenciaisInvalidasException;
-import br.com.fiap.vagazero.identidade.domain.EmailJaCadastradoException;
+import br.com.fiap.vagazero.shared.excecao.ConflitoException;
+import br.com.fiap.vagazero.shared.excecao.RecursoNaoEncontradoException;
 import br.com.fiap.vagazero.shared.excecao.VagaZeroException;
 
 @RestControllerAdvice
@@ -20,8 +21,13 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErroResposta(excecao.getMessage()));
     }
 
-    @ExceptionHandler(EmailJaCadastradoException.class)
-    public ResponseEntity<ErroResposta> tratar(EmailJaCadastradoException excecao) {
+    @ExceptionHandler(RecursoNaoEncontradoException.class)
+    public ResponseEntity<ErroResposta> tratar(RecursoNaoEncontradoException excecao) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErroResposta(excecao.getMessage()));
+    }
+
+    @ExceptionHandler(ConflitoException.class)
+    public ResponseEntity<ErroResposta> tratar(ConflitoException excecao) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErroResposta(excecao.getMessage()));
     }
 
