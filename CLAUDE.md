@@ -195,3 +195,19 @@ o prazo disponível.
 
 Prioridade se o tempo apertar: cascata funcionando > compose em um comando > collection >
 scoring > relatório > resiliência.
+
+## Controle de versão
+
+Ao concluir cada etapa ou bloco funcional, faça um commit antes de seguir
+para o próximo. Uma etapa, um commit.
+
+Formato: Conventional Commits em português, imperativo, sem ponto final.
+Prefixos: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
+
+Exemplos:
+- `feat: motor de cascata de convites com TTL configuravel`
+- `feat: scoring de risco de falta explicavel`
+- `test: cobertura do motor de scoring`
+
+Nunca faça `git push` sem eu pedir explicitamente.
+Nunca inclua atribuição de ferramenta ou co-autoria nas mensagens de commit.
