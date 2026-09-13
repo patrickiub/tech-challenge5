@@ -1,0 +1,8 @@
+**/target
+**/.idea
+**/.iml
+.git
+.gitignore
+docs
+postman
+*.md
