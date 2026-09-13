@@ -19,10 +19,27 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  kafka:
+    bootstrap-servers: ${VAGAZERO_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: vaga-zero-api
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: br.com.fiap.vagazero.shared.evento
+        spring.json.use.type.headers: true
+
 vagazero:
   jwt:
     secret: ${VAGAZERO_JWT_SECRET:vaga-zero-hackathon-fiap-fase5-chave-secreta-desenvolvimento-32bytes}
     expiracao-minutos: ${VAGAZERO_JWT_EXPIRACAO_MINUTOS:60}
+  convite:
+    ttl-segundos: ${VAGAZERO_CONVITE_TTL_SEGUNDOS:1800}
+    scheduler-intervalo-ms: ${VAGAZERO_CONVITE_SCHEDULER_INTERVALO_MS:2000}
 
 server:
   port: 8080
