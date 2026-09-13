@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
+import br.com.fiap.vagazero.agenda.domain.StatusVaga;
 import br.com.fiap.vagazero.agenda.domain.Vaga;
 import br.com.fiap.vagazero.agenda.domain.VagaRepositorio;
 
@@ -47,6 +48,11 @@ public class VagaRepositorioAdapter implements VagaRepositorio {
     @Override
     public void excluir(Long id) {
         jpaRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean mudarStatusSeAtual(Long id, StatusVaga statusEsperado, StatusVaga statusNovo) {
+        return jpaRepository.mudarStatusSeAtual(id, statusEsperado, statusNovo) > 0;
     }
 
     private Vaga paraDomain(VagaJpaEntity entidade) {

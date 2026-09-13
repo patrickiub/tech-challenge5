@@ -12,4 +12,10 @@ public interface VagaRepositorio {
     List<Vaga> listarTodas();
 
     void excluir(Long id);
+
+    /**
+     * Transicao atomica: so aplica se o status em banco ainda for o esperado.
+     * Retorna true se a linha foi de fato alterada.
+     */
+    boolean mudarStatusSeAtual(Long id, StatusVaga statusEsperado, StatusVaga statusNovo);
 }

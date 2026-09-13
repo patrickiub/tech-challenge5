@@ -12,7 +12,7 @@ import br.com.fiap.vagazero.agenda.domain.PacienteNaoEncontradoException;
 import br.com.fiap.vagazero.agenda.domain.PacienteRepositorio;
 
 @Service
-public class PacienteService {
+public class PacienteService implements ConsultaPacienteUseCase {
 
     private final PacienteRepositorio pacienteRepositorio;
 
@@ -51,5 +51,11 @@ public class PacienteService {
     public void excluir(Long id) {
         buscarPorId(id);
         pacienteRepositorio.excluir(id);
+    }
+
+    @Override
+    public PacienteResumo buscarResumo(Long pacienteId) {
+        Paciente paciente = buscarPorId(pacienteId);
+        return new PacienteResumo(paciente.id(), paciente.nome(), paciente.latitude(), paciente.longitude());
     }
 }

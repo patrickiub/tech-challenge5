@@ -13,7 +13,7 @@ import br.com.fiap.vagazero.agenda.domain.VagaNaoEncontradaException;
 import br.com.fiap.vagazero.agenda.domain.VagaRepositorio;
 
 @Service
-public class VagaService {
+public class VagaService implements VagaCascataUseCase {
 
     private final VagaRepositorio vagaRepositorio;
     private final UnidadeRepositorio unidadeRepositorio;
@@ -31,9 +31,15 @@ public class VagaService {
         return vagaRepositorio.salvar(vaga);
     }
 
+    @Override
     public Vaga buscarPorId(Long id) {
         return vagaRepositorio.buscarPorId(id)
                 .orElseThrow(() -> new VagaNaoEncontradaException(id));
+    }
+
+    @Override
+    public boolean mudarStatusSeAtual(Long id, StatusVaga statusEsperado, StatusVaga statusNovo) {
+        return vagaRepositorio.mudarStatusSeAtual(id, statusEsperado, statusNovo);
     }
 
     public List<Vaga> listarTodas() {

@@ -44,6 +44,11 @@ public class AgendamentoController {
         return agendamentoService.listarTodos().stream().map(AgendamentoResponse::de).toList();
     }
 
+    @PostMapping("/{id}/cancelar")
+    public AgendamentoResponse cancelar(@PathVariable Long id) {
+        return AgendamentoResponse.de(agendamentoService.cancelar(id));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('GESTOR')")
     public AgendamentoResponse atualizarStatus(

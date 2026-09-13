@@ -10,7 +10,7 @@ import br.com.fiap.vagazero.agenda.domain.UnidadeNaoEncontradaException;
 import br.com.fiap.vagazero.agenda.domain.UnidadeRepositorio;
 
 @Service
-public class UnidadeService {
+public class UnidadeService implements ConsultaUnidadeUseCase {
 
     private final UnidadeRepositorio unidadeRepositorio;
 
@@ -39,5 +39,11 @@ public class UnidadeService {
     public void excluir(Long id) {
         buscarPorId(id);
         unidadeRepositorio.excluir(id);
+    }
+
+    @Override
+    public UnidadeResumo buscarResumo(Long unidadeId) {
+        Unidade unidade = buscarPorId(unidadeId);
+        return new UnidadeResumo(unidade.id(), unidade.nome(), unidade.latitude(), unidade.longitude());
     }
 }
