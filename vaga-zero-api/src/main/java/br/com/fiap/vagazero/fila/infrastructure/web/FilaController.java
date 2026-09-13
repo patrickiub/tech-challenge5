@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.fiap.vagazero.agenda.application.ConsultaPacienteUseCase;
 import br.com.fiap.vagazero.fila.application.FilaService;
+import br.com.fiap.vagazero.fila.domain.ItemFila;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -27,9 +29,11 @@ import jakarta.validation.Valid;
 public class FilaController {
 
     private final FilaService filaService;
+    private final ConsultaPacienteUseCase consultaPacienteUseCase;
 
-    public FilaController(FilaService filaService) {
+    public FilaController(FilaService filaService, ConsultaPacienteUseCase consultaPacienteUseCase) {
         this.filaService = filaService;
+        this.consultaPacienteUseCase = consultaPacienteUseCase;
     }
 
     @Operation(summary = "Entrar na fila de espera",
@@ -42,14 +46,14 @@ public class FilaController {
         var item = filaService.entrar(
                 requisicao.pacienteId(), requisicao.especialidade(), requisicao.prioridadeClinica(),
                 requisicao.aceitaChamadoImediato(), requisicao.raioMaximoKm());
-        return ItemFilaResponse.de(item);
+        return responder(item);
     }
 
     @Operation(summary = "Buscar item da fila por id")
     @ApiResponse(responseCode = "404", description = "Item de fila nao encontrado")
     @GetMapping("/{id}")
     public ItemFilaResponse buscarPorId(@Parameter(example = "1") @PathVariable Long id) {
-        return ItemFilaResponse.de(filaService.buscarPorId(id));
+        return responder(filaService.buscarPorId(id));
     }
 
     @Operation(summary = "Listar fila de espera",
@@ -58,14 +62,26 @@ public class FilaController {
     @GetMapping
     public List<ItemFilaResponse> listar(
             @Parameter(example = "Oftalmologia") @RequestParam(required = false) String especialidade) {
-        return filaService.listar(especialidade).stream().map(ItemFilaResponse::de).toList();
+        return filaService.listar(especialidade).stream().map(this::responder).toList();
     }
 
-    @Operation(summary = "Remover paciente da fila")
+    @Operation(summary = "Remover paciente da fila",
+            description = "Retorna o paciente removido, a especialidade e quantos pacientes restam na fila "
+                    + "dessa especialidade, em vez de um corpo vazio.")
+    @ApiResponse(responseCode = "200", description = "Paciente removido da fila")
+    @ApiResponse(responseCode = "404", description = "Item de fila nao encontrado")
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('GESTOR')")
-    public void sair(@Parameter(example = "1") @PathVariable Long id) {
+    public ItemFilaRemovidoResponse sair(@Parameter(example = "1") @PathVariable Long id) {
+        ItemFila item = filaService.buscarPorId(id);
+        String nomePaciente = consultaPacienteUseCase.buscarResumo(item.pacienteId()).nome();
         filaService.sair(id);
+        int restantes = filaService.listar(item.especialidade()).size();
+        return new ItemFilaRemovidoResponse(item.pacienteId(), nomePaciente, item.especialidade(), true, restantes);
+    }
+
+    private ItemFilaResponse responder(ItemFila item) {
+        String nomePaciente = consultaPacienteUseCase.buscarResumo(item.pacienteId()).nome();
+        return ItemFilaResponse.de(item, nomePaciente);
     }
 }

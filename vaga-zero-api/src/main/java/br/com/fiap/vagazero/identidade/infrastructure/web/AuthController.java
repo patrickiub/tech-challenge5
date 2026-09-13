@@ -47,12 +47,17 @@ public class AuthController {
     @ApiResponse(responseCode = "201", description = "Usuario criado")
     @ApiResponse(responseCode = "400", description = "Dados invalidos ou incoerentes com o perfil", content = @Content(
             mediaType = "application/json",
-            examples = @ExampleObject(value = "{\"mensagem\": \"Perfil GESTOR nao deve informar dados de paciente "
-                    + "(nome, cns, telefone, dataNascimento, latitude, longitude)\"}")))
+            examples = @ExampleObject(value = "{\"timestamp\":\"2026-09-13T14:32:10.123\",\"status\":400,"
+                    + "\"codigo\":\"VALIDACAO\",\"mensagem\":\"Dados invalidos. Corrija os campos indicados "
+                    + "abaixo e tente novamente.\",\"erros\":[{\"campo\":\"geral\",\"mensagem\":\"Perfil GESTOR "
+                    + "nao deve informar dados de paciente (nome, cns, telefone, dataNascimento, latitude, "
+                    + "longitude)\"}]}")))
     @ApiResponse(responseCode = "409", description = "Email ou CNS ja cadastrado", content = @Content(
             mediaType = "application/json",
-            examples = @ExampleObject(value = "{\"mensagem\": \"Ja existe um usuario cadastrado com o email "
-                    + "ana.costa@email.com\"}")))
+            examples = @ExampleObject(value = "{\"timestamp\":\"2026-09-13T14:32:10.123\",\"status\":409,"
+                    + "\"codigo\":\"EMAIL_JA_CADASTRADO\",\"mensagem\":\"Ja existe um usuario cadastrado com o "
+                    + "email ana.costa@email.com. Ajuste a requisicao (outro id/valor) e tente novamente.\","
+                    + "\"erros\":[]}")))
     @PostMapping("/registrar")
     @ResponseStatus(HttpStatus.CREATED)
     public RegistrarUsuarioResponse registrar(@Valid @RequestBody RegistrarUsuarioRequest requisicao) {
@@ -76,7 +81,9 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Autenticado com sucesso")
     @ApiResponse(responseCode = "401", description = "Email ou senha invalidos", content = @Content(
             mediaType = "application/json",
-            examples = @ExampleObject(value = "{\"mensagem\": \"Email ou senha invalidos\"}")))
+            examples = @ExampleObject(value = "{\"timestamp\":\"2026-09-13T14:32:10.123\",\"status\":401,"
+                    + "\"codigo\":\"CREDENCIAIS_INVALIDAS\",\"mensagem\":\"Email ou senha invalidos. Confira o "
+                    + "email e a senha e tente novamente.\",\"erros\":[]}")))
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest requisicao) {
         String token = autenticarUsuarioUseCase.autenticar(requisicao.email(), requisicao.senha());

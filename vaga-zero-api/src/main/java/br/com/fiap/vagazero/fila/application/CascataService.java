@@ -135,7 +135,7 @@ public class CascataService {
         return new ResultadoAceite(convite.vagaId(), agendamento.id(), convite.pacienteId());
     }
 
-    public void recusar(Long conviteId) {
+    public ResultadoRecusa recusar(Long conviteId) {
         Convite convite = conviteRepositorio.buscarPorId(conviteId)
                 .orElseThrow(() -> new ConviteNaoEncontradoException(conviteId));
 
@@ -149,6 +149,8 @@ public class CascataService {
                 KafkaTopics.CONVITE_EXPIRADO, String.valueOf(convite.vagaId()),
                 new ConviteExpiradoEvento(convite.id(), convite.vagaId(), convite.pacienteId(), "RECUSADO"));
         convidarProximo(convite.vagaId());
+
+        return new ResultadoRecusa(convite.id(), convite.vagaId(), convite.pacienteId());
     }
 
     /**
@@ -174,6 +176,7 @@ public class CascataService {
 
     public EstadoCascata consultarEstado(Long vagaId) {
         Vaga vaga = vagaCascataUseCase.buscarPorId(vagaId);
+        String unidadeNome = consultaUnidadeUseCase.buscarResumo(vaga.unidadeId()).nome();
         List<CandidatoElegivel> ordenados = planejarCandidatos(vaga);
         Map<Long, Convite> convitePorPaciente = conviteRepositorio.listarPorVaga(vagaId).stream()
                 .collect(Collectors.toMap(Convite::pacienteId, c -> c, (a, b) -> a));
@@ -186,7 +189,7 @@ public class CascataService {
                     ordem++, candidato.localizacao().pacienteId(), candidato.localizacao().nome(),
                     candidato.distanciaKm(), convite));
         }
-        return new EstadoCascata(vaga, linhas);
+        return new EstadoCascata(vaga, unidadeNome, linhas);
     }
 
     private void convidarProximo(Long vagaId) {

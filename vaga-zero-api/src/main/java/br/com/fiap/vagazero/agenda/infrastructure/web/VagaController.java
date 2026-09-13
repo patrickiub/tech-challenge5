@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.fiap.vagazero.agenda.application.UnidadeService;
 import br.com.fiap.vagazero.agenda.application.VagaService;
+import br.com.fiap.vagazero.agenda.domain.Vaga;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -27,9 +29,11 @@ import jakarta.validation.Valid;
 public class VagaController {
 
     private final VagaService vagaService;
+    private final UnidadeService unidadeService;
 
-    public VagaController(VagaService vagaService) {
+    public VagaController(VagaService vagaService, UnidadeService unidadeService) {
         this.vagaService = vagaService;
+        this.unidadeService = unidadeService;
     }
 
     @Operation(summary = "Cadastrar vaga de atendimento",
@@ -43,20 +47,20 @@ public class VagaController {
     public VagaResponse criar(@Valid @RequestBody VagaRequest requisicao) {
         var vaga = vagaService.criar(
                 requisicao.unidadeId(), requisicao.especialidade(), requisicao.profissional(), requisicao.dataHora());
-        return VagaResponse.de(vaga);
+        return responder(vaga);
     }
 
     @Operation(summary = "Buscar vaga por id")
     @ApiResponse(responseCode = "404", description = "Vaga nao encontrada")
     @GetMapping("/{id}")
     public VagaResponse buscarPorId(@Parameter(example = "1") @PathVariable Long id) {
-        return VagaResponse.de(vagaService.buscarPorId(id));
+        return responder(vagaService.buscarPorId(id));
     }
 
     @Operation(summary = "Listar vagas")
     @GetMapping
     public List<VagaResponse> listar() {
-        return vagaService.listarTodas().stream().map(VagaResponse::de).toList();
+        return vagaService.listarTodas().stream().map(this::responder).toList();
     }
 
     @Operation(summary = "Atualizar vaga",
@@ -69,14 +73,26 @@ public class VagaController {
         var vaga = vagaService.atualizar(
                 id, requisicao.especialidade(), requisicao.profissional(), requisicao.dataHora(),
                 requisicao.status());
-        return VagaResponse.de(vaga);
+        return responder(vaga);
     }
 
-    @Operation(summary = "Excluir vaga")
+    @Operation(summary = "Excluir vaga",
+            description = "Retorna a vaga removida e quantas vagas restam cadastradas, em vez de um corpo "
+                    + "vazio.")
+    @ApiResponse(responseCode = "200", description = "Vaga removida")
+    @ApiResponse(responseCode = "404", description = "Vaga nao encontrada")
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('GESTOR')")
-    public void excluir(@Parameter(example = "1") @PathVariable Long id) {
+    public VagaRemovidaResponse excluir(@Parameter(example = "1") @PathVariable Long id) {
+        var vaga = vagaService.buscarPorId(id);
+        String unidadeNome = unidadeService.buscarPorId(vaga.unidadeId()).nome();
         vagaService.excluir(id);
+        int totalRestante = vagaService.listarTodas().size();
+        return new VagaRemovidaResponse(vaga.id(), vaga.especialidade(), unidadeNome, true, totalRestante);
+    }
+
+    private VagaResponse responder(Vaga vaga) {
+        String unidadeNome = unidadeService.buscarPorId(vaga.unidadeId()).nome();
+        return VagaResponse.de(vaga, unidadeNome);
     }
 }

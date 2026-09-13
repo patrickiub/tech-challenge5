@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.fiap.vagazero.agenda.application.AgendamentoService;
+import br.com.fiap.vagazero.agenda.application.PacienteService;
+import br.com.fiap.vagazero.agenda.application.VagaService;
+import br.com.fiap.vagazero.agenda.domain.Agendamento;
+import br.com.fiap.vagazero.agenda.domain.Vaga;
+import br.com.fiap.vagazero.shared.kafka.KafkaTopics;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,9 +30,14 @@ import jakarta.validation.Valid;
 public class AgendamentoController {
 
     private final AgendamentoService agendamentoService;
+    private final PacienteService pacienteService;
+    private final VagaService vagaService;
 
-    public AgendamentoController(AgendamentoService agendamentoService) {
+    public AgendamentoController(
+            AgendamentoService agendamentoService, PacienteService pacienteService, VagaService vagaService) {
         this.agendamentoService = agendamentoService;
+        this.pacienteService = pacienteService;
+        this.vagaService = vagaService;
     }
 
     @Operation(
@@ -41,20 +51,20 @@ public class AgendamentoController {
     @ResponseStatus(HttpStatus.CREATED)
     public AgendamentoResponse criar(@Valid @RequestBody AgendamentoRequest requisicao) {
         var agendamento = agendamentoService.criar(requisicao.vagaId(), requisicao.pacienteId());
-        return AgendamentoResponse.de(agendamento);
+        return responder(agendamento);
     }
 
     @Operation(tags = "2 - Cadastros", summary = "Buscar agendamento por id")
     @ApiResponse(responseCode = "404", description = "Agendamento nao encontrado")
     @GetMapping("/{id}")
     public AgendamentoResponse buscarPorId(@Parameter(example = "1") @PathVariable Long id) {
-        return AgendamentoResponse.de(agendamentoService.buscarPorId(id));
+        return responder(agendamentoService.buscarPorId(id));
     }
 
     @Operation(tags = "2 - Cadastros", summary = "Listar agendamentos")
     @GetMapping
     public List<AgendamentoResponse> listar() {
-        return agendamentoService.listarTodos().stream().map(AgendamentoResponse::de).toList();
+        return agendamentoService.listarTodos().stream().map(this::responder).toList();
     }
 
     @Operation(
@@ -65,12 +75,18 @@ public class AgendamentoController {
                     + "Antes de executar, garanta que ha ao menos um paciente elegivel na fila de espera "
                     + "para a especialidade da vaga (endpoint 'Entrar na fila'), senao a vaga vai direto "
                     + "para PERDIDA. Em seguida, consulte 'Consultar estado da cascata' para acompanhar.")
-    @ApiResponse(responseCode = "200", description = "Agendamento cancelado, vaga liberada para a cascata")
+    @ApiResponse(responseCode = "200", description = "Agendamento cancelado, vaga liberada para a cascata - a "
+            + "resposta lista os eventos Kafka publicados")
     @ApiResponse(responseCode = "404", description = "Agendamento nao encontrado")
     @ApiResponse(responseCode = "409", description = "Agendamento nao pode ser cancelado no status atual")
     @PostMapping("/{id}/cancelar")
-    public AgendamentoResponse cancelar(@Parameter(example = "1") @PathVariable Long id) {
-        return AgendamentoResponse.de(agendamentoService.cancelar(id));
+    public CancelamentoAgendamentoResponse cancelar(@Parameter(example = "1") @PathVariable Long id) {
+        Agendamento agendamento = agendamentoService.cancelar(id);
+        Vaga vaga = vagaService.buscarPorId(agendamento.vagaId());
+        String nomePaciente = pacienteService.buscarPorId(agendamento.pacienteId()).nome();
+        return new CancelamentoAgendamentoResponse(
+                agendamento.id(), agendamento.status(), agendamento.pacienteId(), nomePaciente, vaga.id(),
+                vaga.especialidade(), List.of(KafkaTopics.AGENDAMENTO_CANCELADO, KafkaTopics.VAGA_LIBERADA));
     }
 
     @Operation(tags = "2 - Cadastros", summary = "Atualizar status do agendamento (uso administrativo)")
@@ -80,14 +96,29 @@ public class AgendamentoController {
             @Parameter(example = "1") @PathVariable Long id,
             @Valid @RequestBody AtualizarStatusAgendamentoRequest requisicao) {
         var agendamento = agendamentoService.atualizarStatus(id, requisicao.status(), requisicao.confirmadoEm());
-        return AgendamentoResponse.de(agendamento);
+        return responder(agendamento);
     }
 
-    @Operation(tags = "2 - Cadastros", summary = "Excluir agendamento")
+    @Operation(tags = "2 - Cadastros", summary = "Excluir agendamento",
+            description = "Retorna o agendamento removido e quantos agendamentos restam cadastrados, em vez "
+                    + "de um corpo vazio.")
+    @ApiResponse(responseCode = "200", description = "Agendamento removido")
+    @ApiResponse(responseCode = "404", description = "Agendamento nao encontrado")
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('GESTOR')")
-    public void excluir(@Parameter(example = "1") @PathVariable Long id) {
+    public AgendamentoRemovidoResponse excluir(@Parameter(example = "1") @PathVariable Long id) {
+        var agendamento = agendamentoService.buscarPorId(id);
+        String nomePaciente = pacienteService.buscarPorId(agendamento.pacienteId()).nome();
         agendamentoService.excluir(id);
+        int totalRestante = agendamentoService.listarTodos().size();
+        return new AgendamentoRemovidoResponse(
+                agendamento.id(), agendamento.pacienteId(), nomePaciente, agendamento.vagaId(),
+                agendamento.status(), true, totalRestante);
+    }
+
+    private AgendamentoResponse responder(Agendamento agendamento) {
+        Vaga vaga = vagaService.buscarPorId(agendamento.vagaId());
+        String nomePaciente = pacienteService.buscarPorId(agendamento.pacienteId()).nome();
+        return AgendamentoResponse.de(agendamento, vaga.especialidade(), vaga.dataHora(), nomePaciente);
     }
 }

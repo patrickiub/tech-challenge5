@@ -65,11 +65,17 @@ public class UnidadeController {
         return UnidadeResponse.de(unidade);
     }
 
-    @Operation(summary = "Excluir unidade")
+    @Operation(summary = "Excluir unidade",
+            description = "Retorna a unidade removida e quantas unidades restam cadastradas, em vez de um "
+                    + "corpo vazio.")
+    @ApiResponse(responseCode = "200", description = "Unidade removida")
+    @ApiResponse(responseCode = "404", description = "Unidade nao encontrada")
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('GESTOR')")
-    public void excluir(@Parameter(example = "1") @PathVariable Long id) {
+    public UnidadeRemovidaResponse excluir(@Parameter(example = "1") @PathVariable Long id) {
+        var unidade = unidadeService.buscarPorId(id);
         unidadeService.excluir(id);
+        int totalRestante = unidadeService.listarTodas().size();
+        return new UnidadeRemovidaResponse(unidade.id(), unidade.nome(), true, totalRestante);
     }
 }

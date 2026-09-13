@@ -4,5 +4,5 @@ import java.util.List;
 
 import br.com.fiap.vagazero.agenda.domain.Vaga;
 
-public record EstadoCascata(Vaga vaga, List<CandidatoCascata> candidatos) {
+public record EstadoCascata(Vaga vaga, String unidadeNome, List<CandidatoCascata> candidatos) {
 }

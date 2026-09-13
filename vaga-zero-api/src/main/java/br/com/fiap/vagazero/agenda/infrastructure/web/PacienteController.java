@@ -72,11 +72,17 @@ public class PacienteController {
         return PacienteResponse.de(paciente);
     }
 
-    @Operation(summary = "Excluir paciente")
+    @Operation(summary = "Excluir paciente",
+            description = "Retorna o paciente removido e quantos pacientes restam cadastrados, em vez de um "
+                    + "corpo vazio.")
+    @ApiResponse(responseCode = "200", description = "Paciente removido")
+    @ApiResponse(responseCode = "404", description = "Paciente nao encontrado")
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('GESTOR')")
-    public void excluir(@Parameter(example = "1") @PathVariable Long id) {
+    public PacienteRemovidoResponse excluir(@Parameter(example = "1") @PathVariable Long id) {
+        var paciente = pacienteService.buscarPorId(id);
         pacienteService.excluir(id);
+        int totalRestante = pacienteService.listarTodos().size();
+        return new PacienteRemovidoResponse(paciente.id(), paciente.nome(), paciente.cns(), true, totalRestante);
     }
 }
