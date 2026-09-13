@@ -1,0 +1,693 @@
+{
+  "info": {
+    "name": "Vaga Zero - Fluxo completo da cascata",
+    "description": "Collection executavel de ponta a ponta: login, cadastros, montagem da fila com pacientes de perfis diferentes, agendamento, cancelamento, nascimento da cascata, expiracao do primeiro convite, chamada do segundo candidato, aceite e confirmacao do estado final. Roda do zero em um banco limpo (apenas os usuarios de demonstracao criados pela migration V2 sao usados para login). Assume VAGAZERO_CONVITE_TTL_SEGUNDOS=20 no ambiente da aplicacao.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "0 - Autenticacao",
+      "item": [
+        {
+          "name": "Login como gestor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('token presente na resposta', () => {",
+                  "    pm.expect(corpo.token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.environment.set('token', corpo.token);",
+                  "const execId = String(Math.floor(100000 + Math.random() * 900000));",
+                  "pm.environment.set('execId', execId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"gestor@vagazero.com\",\n  \"senha\": \"gestor123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "description": "Autentica com o usuario GESTOR de demonstracao (criado pela migration V2, sempre presente mesmo em um banco recem-migrado). O token retornado e usado como Bearer em todas as demais chamadas da collection - todas herdam a autenticacao do nivel da collection."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1 - Cadastros base",
+      "item": [
+        {
+          "name": "Cadastrar unidade de saude",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('unidade tem id e nome', () => {",
+                  "    pm.expect(corpo.id).to.be.a('number');",
+                  "    pm.expect(corpo.nome).to.eql('UBS Vila Mariana');",
+                  "});",
+                  "pm.environment.set('unidadeId', corpo.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"UBS Vila Mariana\",\n  \"latitude\": -23.589000,\n  \"longitude\": -46.642000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/unidades", "host": ["{{baseUrl}}"], "path": ["unidades"] },
+            "description": "Cria a unidade de saude onde a vaga sera oferecida. E a referencia geografica usada para calcular a distancia de cada paciente da fila (formula de Haversine) na hora de decidir elegibilidade para a cascata."
+          },
+          "response": []
+        },
+        {
+          "name": "Cadastrar paciente Roberto Nunes (vai faltar)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.environment.set('pacienteRobertoId', corpo.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Roberto Nunes\",\n  \"cns\": \"700000{{execId}}101\",\n  \"telefone\": \"11911110001\",\n  \"latitude\": -23.561684,\n  \"longitude\": -46.655981,\n  \"dataNascimento\": \"1979-04-12\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/pacientes", "host": ["{{baseUrl}}"], "path": ["pacientes"] },
+            "description": "Este e o paciente que sera agendado e, mais adiante, tera o agendamento cancelado - o gatilho que libera a vaga para a cascata. Ele nao entra na fila de espera: representa quem perde o horario, nao quem disputa a recolocacao."
+          },
+          "response": []
+        },
+        {
+          "name": "Cadastrar vaga de Oftalmologia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('vaga criada como DISPONIVEL', () => {",
+                  "    pm.expect(corpo.status).to.eql('DISPONIVEL');",
+                  "    pm.expect(corpo.especialidade).to.eql('Oftalmologia');",
+                  "});",
+                  "pm.environment.set('vagaId', corpo.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"unidadeId\": {{unidadeId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"profissional\": \"Dra. Beatriz Lima\",\n  \"dataHora\": \"2026-10-15T09:00:00\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/vagas", "host": ["{{baseUrl}}"], "path": ["vagas"] },
+            "description": "Vaga de Oftalmologia na unidade recem-criada, com data no futuro (necessario: a cascata so avanca convites enquanto a data da vaga nao chegou). E esta vaga que sera cancelada e disputada pela fila mais adiante."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2 - Fila de espera com perfis variados",
+      "item": [
+        {
+          "name": "Cadastrar paciente Carlos Souza (alta prioridade, perto)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('pacienteCarlosId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Carlos Souza\",\n  \"cns\": \"700000{{execId}}102\",\n  \"telefone\": \"11911110002\",\n  \"latitude\": -23.590500,\n  \"longitude\": -46.643200,\n  \"dataNascimento\": \"1975-02-10\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/pacientes", "host": ["{{baseUrl}}"], "path": ["pacientes"] },
+            "description": "Perfil 1 da fila: mora a ~0.2km da unidade e tera prioridadeClinica 5 (a maior). Deve ser o primeiro a ser chamado quando a vaga for liberada."
+          },
+          "response": []
+        },
+        {
+          "name": "Entrar na fila - Carlos (prioridade 5, elegivel)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('prioridade e aceite corretos', () => {",
+                  "    pm.expect(corpo.prioridadeClinica).to.eql(5);",
+                  "    pm.expect(corpo.aceitaChamadoImediato).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": {{pacienteCarlosId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"prioridadeClinica\": 5,\n  \"aceitaChamadoImediato\": true,\n  \"raioMaximoKm\": 20.0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/fila", "host": ["{{baseUrl}}"], "path": ["fila"] },
+            "description": "Prioridade clinica maxima (5), aceita chamado imediato e esta dentro do raio - elegivel e primeiro na ordenacao da cascata (prioridadeClinica desc e o primeiro criterio de ordenacao)."
+          },
+          "response": []
+        },
+        {
+          "name": "Cadastrar paciente Beatriz Alves (prioridade media, perto)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('pacienteBeatrizId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Beatriz Alves\",\n  \"cns\": \"700000{{execId}}103\",\n  \"telefone\": \"11911110003\",\n  \"latitude\": -23.598000,\n  \"longitude\": -46.652000,\n  \"dataNascimento\": \"1992-11-30\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/pacientes", "host": ["{{baseUrl}}"], "path": ["pacientes"] },
+            "description": "Perfil 2 da fila: mora a ~1.4km da unidade e tera prioridadeClinica 4. Elegivel, mas fica atras de Carlos na ordenacao - sera o segundo candidato chamado, depois que o convite de Carlos expirar."
+          },
+          "response": []
+        },
+        {
+          "name": "Entrar na fila - Beatriz (prioridade 4, elegivel)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('prioridade correta', () => pm.expect(corpo.prioridadeClinica).to.eql(4));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": {{pacienteBeatrizId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"prioridadeClinica\": 4,\n  \"aceitaChamadoImediato\": true,\n  \"raioMaximoKm\": 20.0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/fila", "host": ["{{baseUrl}}"], "path": ["fila"] },
+            "description": "Elegivel (mesma especialidade, aceita chamado imediato, dentro do raio), mas com prioridadeClinica menor que Carlos - segundo na ordenacao da cascata."
+          },
+          "response": []
+        },
+        {
+          "name": "Cadastrar paciente Diego Martins (nao aceita chamado imediato)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('pacienteDiegoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Diego Martins\",\n  \"cns\": \"700000{{execId}}104\",\n  \"telefone\": \"11911110004\",\n  \"latitude\": -23.591000,\n  \"longitude\": -46.644000,\n  \"dataNascimento\": \"1988-06-18\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/pacientes", "host": ["{{baseUrl}}"], "path": ["pacientes"] },
+            "description": "Perfil 3 da fila: mora perto da unidade, mas marcou que NAO aceita chamado imediato. Serve para demonstrar o filtro de elegibilidade - mesmo perto e na especialidade certa, ele nunca aparece na cascata."
+          },
+          "response": []
+        },
+        {
+          "name": "Entrar na fila - Diego (inelegivel: aceitaChamadoImediato=false)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('aceitaChamadoImediato false', () => pm.expect(corpo.aceitaChamadoImediato).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": {{pacienteDiegoId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"prioridadeClinica\": 3,\n  \"aceitaChamadoImediato\": false,\n  \"raioMaximoKm\": 20.0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/fila", "host": ["{{baseUrl}}"], "path": ["fila"] },
+            "description": "Entra na fila normalmente (o cadastro em si nao exige aceitar chamado imediato), mas o motor de cascata vai ignora-lo por completo: a regra de elegibilidade exige aceitaChamadoImediato=true."
+          },
+          "response": []
+        },
+        {
+          "name": "Cadastrar paciente Fernanda Lima (fora do raio)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('pacienteFernandaId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fernanda Lima\",\n  \"cns\": \"700000{{execId}}105\",\n  \"telefone\": \"11911110005\",\n  \"latitude\": -23.850000,\n  \"longitude\": -46.900000,\n  \"dataNascimento\": \"1995-09-05\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/pacientes", "host": ["{{baseUrl}}"], "path": ["pacientes"] },
+            "description": "Perfil 4 da fila: mora a ~39km da unidade (bem alem de qualquer raio razoavel). Serve para demonstrar o segundo filtro de elegibilidade - distancia acima do raioMaximoKm declarado."
+          },
+          "response": []
+        },
+        {
+          "name": "Entrar na fila - Fernanda (inelegivel: fora do raioMaximoKm)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('raio declarado de 10km', () => pm.expect(corpo.raioMaximoKm).to.eql(10.0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": {{pacienteFernandaId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"prioridadeClinica\": 3,\n  \"aceitaChamadoImediato\": true,\n  \"raioMaximoKm\": 10.0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/fila", "host": ["{{baseUrl}}"], "path": ["fila"] },
+            "description": "Aceita chamado imediato, mas declarou um raio maximo de 10km e esta a quase 40km da unidade - fica de fora da cascata pelo filtro de distancia, mesmo com prioridade igual a de Diego."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar fila da especialidade (antes da cascata aplicar elegibilidade)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "const ids = corpo.map((item) => item.pacienteId);",
+                  "pm.test('os 4 pacientes recem-cadastrados estao na fila de Oftalmologia', () => {",
+                  "    pm.expect(ids).to.include(parseInt(pm.environment.get('pacienteCarlosId'), 10));",
+                  "    pm.expect(ids).to.include(parseInt(pm.environment.get('pacienteBeatrizId'), 10));",
+                  "    pm.expect(ids).to.include(parseInt(pm.environment.get('pacienteDiegoId'), 10));",
+                  "    pm.expect(ids).to.include(parseInt(pm.environment.get('pacienteFernandaId'), 10));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/fila?especialidade=Oftalmologia",
+              "host": ["{{baseUrl}}"],
+              "path": ["fila"],
+              "query": [{ "key": "especialidade", "value": "Oftalmologia" }]
+            },
+            "description": "Mostra a populacao candidata bruta (os 4 pacientes cadastrados acima), antes de qualquer filtro de elegibilidade ou ordenacao. Compare com o resultado de 'Consultar estado da cascata' mais adiante, que ja aplica prioridadeClinica, aceitaChamadoImediato e raioMaximoKm."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3 - Agendamento e cancelamento",
+      "item": [
+        {
+          "name": "Agendar consulta para Roberto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('agendamento criado como AGENDADO', () => pm.expect(corpo.status).to.eql('AGENDADO'));",
+                  "pm.environment.set('agendamentoId', corpo.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vagaId\": {{vagaId}},\n  \"pacienteId\": {{pacienteRobertoId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/agendamentos", "host": ["{{baseUrl}}"], "path": ["agendamentos"] },
+            "description": "Roberto ocupa a vaga de Oftalmologia. A vaga permanece DISPONIVEL do ponto de vista do recurso /vagas ate que o agendamento seja de fato cancelado - e o cancelamento, nao a criacao do agendamento, que libera a vaga para a fila."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar agendamento (dispara a cascata)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('agendamento cancelado e eventos publicados', () => {",
+                  "    pm.expect(corpo.status).to.eql('CANCELADO');",
+                  "    pm.expect(corpo.eventosPublicados).to.include('agendamento.cancelado');",
+                  "    pm.expect(corpo.eventosPublicados).to.include('vaga.liberada');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/agendamentos/{{agendamentoId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["agendamentos", "{{agendamentoId}}", "cancelar"]
+            },
+            "description": "Este e o gatilho de toda a demonstracao: cancela o agendamento de Roberto e publica agendamento.cancelado seguido de vaga.liberada no Kafka. O modulo fila consome vaga.liberada de forma assincrona (KafkaListener) e a partir dai monta a cascata - por isso o proximo passo aguarda um instante antes de consultar o estado."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4 - Nascimento da cascata",
+      "item": [
+        {
+          "name": "Aguardar consumo assincrono de vaga.liberada (~3s)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const esperaMs = 3000;",
+                  "const inicio = Date.now();",
+                  "while (Date.now() - inicio < esperaMs) { /* espera ocupada: da tempo ao listener Kafka de processar vaga.liberada */ }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/unidades/{{unidadeId}}", "host": ["{{baseUrl}}"], "path": ["unidades", "{{unidadeId}}"] },
+            "description": "Requisicao neutra usada apenas para segurar a execucao por ~3 segundos antes de consultar o estado da cascata: o listener do topico vaga.liberada (modulo fila) processa a mensagem de forma assincrona, entao o primeiro convite pode levar um instante para existir apos o cancelamento."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar estado da cascata (convite para Carlos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "const idsCandidatos = corpo.candidatos.map((c) => c.pacienteId);",
+                  "pm.test('vaga em cascata, com ao menos Carlos e Beatriz elegiveis', () => {",
+                  "    pm.expect(corpo.statusVaga).to.eql('EM_CASCATA');",
+                  "    pm.expect(corpo.candidatos.length).to.be.at.least(2);",
+                  "});",
+                  "pm.test('Diego e Fernanda ficaram de fora (filtro de elegibilidade)', () => {",
+                  "    pm.expect(idsCandidatos).to.not.include(parseInt(pm.environment.get('pacienteDiegoId'), 10));",
+                  "    pm.expect(idsCandidatos).to.not.include(parseInt(pm.environment.get('pacienteFernandaId'), 10));",
+                  "});",
+                  "pm.test('primeiro chamado e Carlos (maior prioridade), convite ENVIADO', () => {",
+                  "    const primeiro = corpo.candidatos[0];",
+                  "    pm.expect(primeiro.pacienteId).to.eql(parseInt(pm.environment.get('pacienteCarlosId'), 10));",
+                  "    pm.expect(primeiro.statusConvite).to.eql('ENVIADO');",
+                  "});",
+                  "pm.test('segundo candidato e Beatriz, ainda aguardando a vez', () => {",
+                  "    const segundo = corpo.candidatos[1];",
+                  "    pm.expect(segundo.pacienteId).to.eql(parseInt(pm.environment.get('pacienteBeatrizId'), 10));",
+                  "    pm.expect(segundo.statusConvite).to.eql('AGUARDANDO_VEZ');",
+                  "});",
+                  "pm.environment.set('convitePrimeiroId', corpo.conviteAtivoId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{vagaId}}/cascata",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{vagaId}}", "cascata"]
+            },
+            "description": "Confirma a transicao DISPONIVEL -> EM_CASCATA e mostra a lista ja filtrada e ordenada: apenas Carlos e Beatriz aparecem (Diego e Fernanda foram descartados pela elegibilidade), com Carlos convidado primeiro por ter prioridadeClinica maior."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5 - Expiracao do primeiro convite e chamada do segundo",
+      "item": [
+        {
+          "name": "Aguardar expiracao do convite de Carlos (TTL 20s + margem do scheduler)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const esperaMs = 25000;",
+                  "const inicio = Date.now();",
+                  "while (Date.now() - inicio < esperaMs) { /* espera ocupada: TTL de 20s (VAGAZERO_CONVITE_TTL_SEGUNDOS=20) + intervalo do scheduler (2s) + margem */ }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('convite de Carlos expirou', () => {",
+                  "    const primeiro = corpo.candidatos[0];",
+                  "    pm.expect(primeiro.pacienteId).to.eql(parseInt(pm.environment.get('pacienteCarlosId'), 10));",
+                  "    pm.expect(primeiro.statusConvite).to.eql('EXPIRADO');",
+                  "});",
+                  "pm.test('Beatriz foi chamada em seguida, convite ENVIADO', () => {",
+                  "    const segundo = corpo.candidatos[1];",
+                  "    pm.expect(segundo.pacienteId).to.eql(parseInt(pm.environment.get('pacienteBeatrizId'), 10));",
+                  "    pm.expect(segundo.statusConvite).to.eql('ENVIADO');",
+                  "});",
+                  "pm.test('vaga continua EM_CASCATA', () => pm.expect(corpo.statusVaga).to.eql('EM_CASCATA'));",
+                  "pm.environment.set('conviteSegundoId', corpo.conviteAtivoId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{vagaId}}/cascata",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{vagaId}}", "cascata"]
+            },
+            "description": "O scheduler ConviteExpiradorScheduler roda a cada 2s e marca como EXPIRADO qualquer convite ENVIADO cujo TTL passou, chamando o proximo candidato na mesma varredura. Esta requisicao espera esse ciclo acontecer (TTL 20s + margem) antes de consultar o estado: o convite de Carlos deve aparecer EXPIRADO e o de Beatriz, ENVIADO."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6 - Aceite e confirmacao do estado final",
+      "item": [
+        {
+          "name": "Beatriz aceita o convite",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('vaga ocupada e agendamento criado para Beatriz', () => {",
+                  "    pm.expect(corpo.pacienteId).to.eql(parseInt(pm.environment.get('pacienteBeatrizId'), 10));",
+                  "    pm.expect(corpo.estadoAtual.statusVaga).to.eql('OCUPADA');",
+                  "    pm.expect(corpo.eventosPublicados).to.include('convite.aceito');",
+                  "    pm.expect(corpo.eventosPublicados).to.include('vaga.preenchida');",
+                  "});",
+                  "pm.environment.set('novoAgendamentoId', corpo.agendamentoId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/convites/{{conviteSegundoId}}/aceitar",
+              "host": ["{{baseUrl}}"],
+              "path": ["convites", "{{conviteSegundoId}}", "aceitar"]
+            },
+            "description": "Beatriz aceita a vaga: fecha o ciclo EM_CASCATA -> OCUPADA, cria um novo agendamento CONFIRMADO para ela, remove-a da fila de espera e publica convite.aceito e vaga.preenchida."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirmar vaga OCUPADA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('vaga finalizou OCUPADA', () => pm.expect(pm.response.json().status).to.eql('OCUPADA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/vagas/{{vagaId}}", "host": ["{{baseUrl}}"], "path": ["vagas", "{{vagaId}}"] },
+            "description": "Confirma diretamente no recurso /vagas a transicao final: DISPONIVEL -> EM_CASCATA -> OCUPADA."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirmar agendamento CONFIRMADO para Beatriz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('novo agendamento confirmado para Beatriz', () => {",
+                  "    pm.expect(corpo.status).to.eql('CONFIRMADO');",
+                  "    pm.expect(corpo.pacienteId).to.eql(parseInt(pm.environment.get('pacienteBeatrizId'), 10));",
+                  "    pm.expect(corpo.vagaId).to.eql(parseInt(pm.environment.get('vagaId'), 10));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/agendamentos/{{novoAgendamentoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["agendamentos", "{{novoAgendamentoId}}"]
+            },
+            "description": "O agendamento criado pelo aceite do convite nasce direto como CONFIRMADO (o paciente ja passou pela cascata, confirmacao e implicita), diferente do agendamento original de Roberto que nasceu como AGENDADO."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirmar fila final (Beatriz saiu, Carlos permanece)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "const ids = corpo.map((item) => item.pacienteId);",
+                  "pm.test('Beatriz foi removida da fila ao aceitar a vaga', () => {",
+                  "    pm.expect(ids).to.not.include(parseInt(pm.environment.get('pacienteBeatrizId'), 10));",
+                  "});",
+                  "pm.test('Carlos, Diego e Fernanda continuam na fila', () => {",
+                  "    pm.expect(ids).to.include(parseInt(pm.environment.get('pacienteCarlosId'), 10));",
+                  "    pm.expect(ids).to.include(parseInt(pm.environment.get('pacienteDiegoId'), 10));",
+                  "    pm.expect(ids).to.include(parseInt(pm.environment.get('pacienteFernandaId'), 10));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/fila?especialidade=Oftalmologia",
+              "host": ["{{baseUrl}}"],
+              "path": ["fila"],
+              "query": [{ "key": "especialidade", "value": "Oftalmologia" }]
+            },
+            "description": "Passo final da narrativa: so quem aceita a vaga sai da fila. Carlos (convite expirado) e os inelegiveis Diego e Fernanda continuam la, disponiveis para a proxima vaga que abrir em Oftalmologia."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
