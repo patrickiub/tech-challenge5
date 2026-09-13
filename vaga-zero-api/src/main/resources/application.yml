@@ -41,5 +41,9 @@ vagazero:
     ttl-segundos: ${VAGAZERO_CONVITE_TTL_SEGUNDOS:1800}
     scheduler-intervalo-ms: ${VAGAZERO_CONVITE_SCHEDULER_INTERVALO_MS:2000}
 
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha
+
 server:
   port: 8080

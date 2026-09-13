@@ -6,15 +6,19 @@ import java.time.LocalDateTime;
 
 import br.com.fiap.vagazero.fila.application.CandidatoCascata;
 import br.com.fiap.vagazero.fila.domain.Convite;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public record CandidatoCascataResponse(
-        int ordem,
-        Long pacienteId,
-        String nomePaciente,
-        double distanciaKm,
+        @Schema(example = "1", description = "Posicao do candidato na ordem da cascata") int ordem,
+        @Schema(example = "1") Long pacienteId,
+        @Schema(example = "Maria da Silva") String nomePaciente,
+        @Schema(example = "2.3") double distanciaKm,
+        @Schema(example = "ENVIADO", description = "AGUARDANDO_VEZ (ainda nao chamado), ENVIADO, ACEITO, "
+                + "RECUSADO ou EXPIRADO")
         String statusConvite,
-        LocalDateTime enviadoEm,
-        LocalDateTime expiraEm,
+        @Schema(example = "2026-09-13T10:00:00") LocalDateTime enviadoEm,
+        @Schema(example = "2026-09-13T10:30:00") LocalDateTime expiraEm,
+        @Schema(example = "1200", description = "Segundos restantes do convite ativo (null se nao ENVIADO)")
         Long segundosRestantes) {
 
     private static final String AGUARDANDO_VEZ = "AGUARDANDO_VEZ";

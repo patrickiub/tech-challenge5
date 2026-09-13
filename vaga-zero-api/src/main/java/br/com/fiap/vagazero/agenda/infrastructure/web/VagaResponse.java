@@ -4,14 +4,15 @@ import java.time.LocalDateTime;
 
 import br.com.fiap.vagazero.agenda.domain.StatusVaga;
 import br.com.fiap.vagazero.agenda.domain.Vaga;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public record VagaResponse(
-        Long id,
-        Long unidadeId,
-        String especialidade,
-        String profissional,
-        LocalDateTime dataHora,
-        StatusVaga status) {
+        @Schema(example = "1") Long id,
+        @Schema(example = "1") Long unidadeId,
+        @Schema(example = "Oftalmologia") String especialidade,
+        @Schema(example = "Dra. Beatriz Lima") String profissional,
+        @Schema(example = "2026-10-15T09:00:00") LocalDateTime dataHora,
+        @Schema(example = "DISPONIVEL") StatusVaga status) {
 
     public static VagaResponse de(Vaga vaga) {
         return new VagaResponse(

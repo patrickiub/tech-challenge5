@@ -15,8 +15,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.fiap.vagazero.fila.application.FilaService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "3 - Fila de espera", description = "Cadastro dos candidatos que aguardam vaga. E aqui que o paciente entra elegivel para ser chamado quando uma vaga for liberada.")
 @RestController
 @RequestMapping("/fila")
 public class FilaController {
@@ -27,6 +32,10 @@ public class FilaController {
         this.filaService = filaService;
     }
 
+    @Operation(summary = "Entrar na fila de espera",
+            description = "Execute antes de cancelar um agendamento na secao '4 - Cascata de vagas': sem "
+                    + "ninguem elegivel na fila, a vaga liberada vai direto para PERDIDA.")
+    @ApiResponse(responseCode = "201", description = "Paciente inserido na fila")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ItemFilaResponse entrar(@Valid @RequestBody ItemFilaRequest requisicao) {
@@ -36,20 +45,27 @@ public class FilaController {
         return ItemFilaResponse.de(item);
     }
 
+    @Operation(summary = "Buscar item da fila por id")
+    @ApiResponse(responseCode = "404", description = "Item de fila nao encontrado")
     @GetMapping("/{id}")
-    public ItemFilaResponse buscarPorId(@PathVariable Long id) {
+    public ItemFilaResponse buscarPorId(@Parameter(example = "1") @PathVariable Long id) {
         return ItemFilaResponse.de(filaService.buscarPorId(id));
     }
 
+    @Operation(summary = "Listar fila de espera",
+            description = "Filtre por especialidade para ver a mesma populacao candidata que o motor de "
+                    + "cascata usa (antes da ordenacao por prioridade/tempo de espera/distancia).")
     @GetMapping
-    public List<ItemFilaResponse> listar(@RequestParam(required = false) String especialidade) {
+    public List<ItemFilaResponse> listar(
+            @Parameter(example = "Oftalmologia") @RequestParam(required = false) String especialidade) {
         return filaService.listar(especialidade).stream().map(ItemFilaResponse::de).toList();
     }
 
+    @Operation(summary = "Remover paciente da fila")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('GESTOR')")
-    public void sair(@PathVariable Long id) {
+    public void sair(@Parameter(example = "1") @PathVariable Long id) {
         filaService.sair(id);
     }
 }

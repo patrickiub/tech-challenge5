@@ -6,12 +6,13 @@ import java.util.List;
 
 import br.com.fiap.vagazero.agenda.domain.StatusVaga;
 import br.com.fiap.vagazero.fila.application.EstadoCascata;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public record CascataEstadoResponse(
-        Long vagaId,
-        String especialidade,
-        StatusVaga statusVaga,
-        LocalDateTime dataHoraVaga,
+        @Schema(example = "1") Long vagaId,
+        @Schema(example = "Oftalmologia") String especialidade,
+        @Schema(example = "EM_CASCATA") StatusVaga statusVaga,
+        @Schema(example = "2026-10-15T09:00:00") LocalDateTime dataHoraVaga,
         List<CandidatoCascataResponse> candidatos) {
 
     public static CascataEstadoResponse de(EstadoCascata estado, Clock clock) {

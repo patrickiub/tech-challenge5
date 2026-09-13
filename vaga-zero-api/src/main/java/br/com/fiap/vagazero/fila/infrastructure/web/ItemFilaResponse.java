@@ -4,15 +4,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import br.com.fiap.vagazero.fila.domain.ItemFila;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public record ItemFilaResponse(
-        Long id,
-        Long pacienteId,
-        String especialidade,
-        LocalDateTime dataEntrada,
-        int prioridadeClinica,
-        boolean aceitaChamadoImediato,
-        BigDecimal raioMaximoKm) {
+        @Schema(example = "1") Long id,
+        @Schema(example = "1") Long pacienteId,
+        @Schema(example = "Oftalmologia") String especialidade,
+        @Schema(example = "2026-09-13T10:00:00") LocalDateTime dataEntrada,
+        @Schema(example = "3") int prioridadeClinica,
+        @Schema(example = "true") boolean aceitaChamadoImediato,
+        @Schema(example = "15.0") BigDecimal raioMaximoKm) {
 
     public static ItemFilaResponse de(ItemFila item) {
         return new ItemFilaResponse(
