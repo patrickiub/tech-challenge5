@@ -183,6 +183,17 @@ o prazo disponível.
   `@RestControllerAdvice`
 - Migrations Flyway numeradas: `V1__criar_tabelas_base.sql`, etc.
 
+## Ambiente de desenvolvimento
+
+Antes de subir a aplicação, verifique se a porta 8080 já está ocupada.
+Pode haver uma instância rodando pela IDE do desenvolvedor. Nunca suba
+uma segunda instância em paralelo — testar contra bytecode desatualizado
+já causou diagnóstico incorreto neste projeto.
+
+Durante o desenvolvimento a aplicação roda com
+VAGAZERO_CONVITE_TTL_SEGUNDOS=20 para permitir demonstração da
+expiração de convites.
+
 ## Cronograma
 
 | Data | Entrega |
