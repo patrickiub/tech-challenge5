@@ -10,6 +10,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public record CandidatoCascataResponse(
         @Schema(example = "1", description = "Posicao do candidato na ordem da cascata") int ordem,
+        @Schema(example = "1", description = "Id do convite - use este valor em POST /convites/{id}/aceitar "
+                + "ou /recusar. Nulo enquanto o candidato esta em AGUARDANDO_VEZ.")
+        Long conviteId,
         @Schema(example = "1") Long pacienteId,
         @Schema(example = "Maria da Silva") String nomePaciente,
         @Schema(example = "2.3") double distanciaKm,
@@ -27,14 +30,14 @@ public record CandidatoCascataResponse(
         Convite convite = candidato.convite();
         if (convite == null) {
             return new CandidatoCascataResponse(
-                    candidato.ordem(), candidato.pacienteId(), candidato.nomePaciente(),
+                    candidato.ordem(), null, candidato.pacienteId(), candidato.nomePaciente(),
                     arredondar(candidato.distanciaKm()), AGUARDANDO_VEZ, null, null, null);
         }
         Long segundosRestantes = "ENVIADO".equals(convite.status().name())
                 ? Math.max(0, Duration.between(LocalDateTime.now(clock), convite.expiraEm()).getSeconds())
                 : null;
         return new CandidatoCascataResponse(
-                candidato.ordem(), candidato.pacienteId(), candidato.nomePaciente(),
+                candidato.ordem(), convite.id(), candidato.pacienteId(), candidato.nomePaciente(),
                 arredondar(candidato.distanciaKm()), convite.status().name(), convite.enviadoEm(),
                 convite.expiraEm(), segundosRestantes);
     }
