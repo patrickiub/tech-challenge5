@@ -185,14 +185,28 @@ o prazo disponível.
 
 ## Ambiente de desenvolvimento
 
-Antes de subir a aplicação, verifique se a porta 8080 já está ocupada.
-Pode haver uma instância rodando pela IDE do desenvolvedor. Nunca suba
-uma segunda instância em paralelo — testar contra bytecode desatualizado
-já causou diagnóstico incorreto neste projeto.
+O projeto sobe inteiro com um único comando:
 
-Durante o desenvolvimento a aplicação roda com
-VAGAZERO_CONVITE_TTL_SEGUNDOS=20 para permitir demonstração da
-expiração de convites.
+```
+docker compose up -d --build
+```
+
+E mais nada. Postgres, Kafka e vaga-zero-api sobem juntos, na ordem certa
+(`depends_on` com `condition: service_healthy`), sem precisar exportar
+variável nenhuma — `VAGAZERO_CONVITE_TTL_SEGUNDOS=20` e todas as demais já
+estão fixadas no `compose.yml`.
+
+**Nunca rode a aplicação em paralelo pela IDE ou via `java -jar` enquanto
+o container estiver de pé.** Duas instâncias na mesma porta (8080) ou
+testar contra bytecode desatualizado já causaram diagnóstico incorreto
+neste projeto. Se precisar rodar pela IDE para debug, derrube o container
+antes (`docker compose stop vaga-zero-api`).
+
+Para começar do zero (banco limpo): `docker compose down -v` antes do `up`.
+
+`docker compose ps` mostra o healthcheck de cada serviço — o app só
+aparece `healthy` quando `/actuator/health` responde `UP`, ou seja,
+quando já passou pelas migrations do Flyway.
 
 ## Cronograma
 
@@ -201,11 +215,11 @@ expiração de convites.
 | 12/09 | Compose subindo, esqueleto hexagonal, JWT, CRUD básico, Swagger |
 | 13/09 | Cascata completa funcionando ponta a ponta |
 | 17/09 (noite) | Scoring, job D-2, recursos de demo |
-| 19/09 | notificacao-service, Resilience4j, testes, diagramas, README |
+| 19/09 | ~~Dockerização do vaga-zero-api~~ **concluída antecipadamente.** notificacao-service, Resilience4j, testes, diagramas, README |
 | 20/09 | Collection, relatório, roteiros de vídeo. **Code freeze.** |
 
-Prioridade se o tempo apertar: cascata funcionando > compose em um comando > collection >
-scoring > relatório > resiliência.
+Prioridade se o tempo apertar: cascata funcionando > ~~compose em um comando~~ (concluído) >
+collection > scoring > relatório > resiliência.
 
 ## Controle de versão
 
