@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.fiap.vagazero.identidade.application.AutenticarUsuarioUseCase;
+import br.com.fiap.vagazero.identidade.application.DadosPacienteRegistro;
 import br.com.fiap.vagazero.identidade.application.RegistrarUsuarioUseCase;
+import br.com.fiap.vagazero.identidade.domain.Perfil;
 import br.com.fiap.vagazero.identidade.domain.Usuario;
 import jakarta.validation.Valid;
 
@@ -29,9 +31,14 @@ public class AuthController {
     @PostMapping("/registrar")
     @ResponseStatus(HttpStatus.CREATED)
     public RegistrarUsuarioResponse registrar(@Valid @RequestBody RegistrarUsuarioRequest requisicao) {
+        DadosPacienteRegistro dadosPaciente = requisicao.perfil() == Perfil.PACIENTE
+                ? new DadosPacienteRegistro(
+                        requisicao.nome(), requisicao.cns(), requisicao.telefone(), requisicao.dataNascimento(),
+                        requisicao.latitude(), requisicao.longitude())
+                : null;
         Usuario usuario = registrarUsuarioUseCase.registrar(
-                requisicao.email(), requisicao.senha(), requisicao.perfil(), requisicao.pacienteId());
-        return new RegistrarUsuarioResponse(usuario.id(), usuario.email(), usuario.perfil());
+                requisicao.email(), requisicao.senha(), requisicao.perfil(), dadosPaciente);
+        return RegistrarUsuarioResponse.de(usuario);
     }
 
     @PostMapping("/login")

@@ -2,8 +2,10 @@ package br.com.fiap.vagazero.shared.web;
 
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -38,9 +40,22 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErroResposta> tratar(MethodArgumentNotValidException excecao) {
-        String mensagem = excecao.getBindingResult().getFieldErrors().stream()
-                .map(erro -> erro.getField() + ": " + erro.getDefaultMessage())
+        // getAllErrors() inclui tanto erros de campo (@NotBlank, @Size, ...) quanto
+        // erros de classe (validadores como @DadosClinicosCoerentesComPerfil), que
+        // getFieldErrors() sozinho descartaria silenciosamente.
+        String mensagem = excecao.getBindingResult().getAllErrors().stream()
+                .map(erro -> erro instanceof FieldError fieldError
+                        ? fieldError.getField() + ": " + fieldError.getDefaultMessage()
+                        : erro.getDefaultMessage())
                 .collect(Collectors.joining("; "));
         return ResponseEntity.badRequest().body(new ErroResposta(mensagem));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErroResposta> tratar(DataIntegrityViolationException excecao) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErroResposta(
+                        "Nao foi possivel concluir a operacao: dado duplicado ou referencia a um "
+                                + "registro inexistente"));
     }
 }

@@ -12,7 +12,7 @@ import br.com.fiap.vagazero.agenda.domain.PacienteNaoEncontradoException;
 import br.com.fiap.vagazero.agenda.domain.PacienteRepositorio;
 
 @Service
-public class PacienteService implements ConsultaPacienteUseCase {
+public class PacienteService implements ConsultaPacienteUseCase, CriarPacienteUseCase {
 
     private final PacienteRepositorio pacienteRepositorio;
 
@@ -20,6 +20,7 @@ public class PacienteService implements ConsultaPacienteUseCase {
         this.pacienteRepositorio = pacienteRepositorio;
     }
 
+    @Override
     public Paciente criar(
             String nome, String cns, String telefone, BigDecimal latitude, BigDecimal longitude,
             LocalDate dataNascimento) {
