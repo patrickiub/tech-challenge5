@@ -28,7 +28,7 @@ public class ItemFilaJpaEntity {
     private LocalDateTime dataEntrada;
 
     @Column(name = "prioridade_clinica", nullable = false)
-    private Integer prioridadeClinica;
+    private Short prioridadeClinica;
 
     @Column(name = "aceita_chamado_imediato", nullable = false)
     private boolean aceitaChamadoImediato;
@@ -40,7 +40,7 @@ public class ItemFilaJpaEntity {
     }
 
     public ItemFilaJpaEntity(
-            Long id, Long pacienteId, String especialidade, LocalDateTime dataEntrada, Integer prioridadeClinica,
+            Long id, Long pacienteId, String especialidade, LocalDateTime dataEntrada, Short prioridadeClinica,
             boolean aceitaChamadoImediato, BigDecimal raioMaximoKm) {
         this.id = id;
         this.pacienteId = pacienteId;
@@ -67,7 +67,7 @@ public class ItemFilaJpaEntity {
         return dataEntrada;
     }
 
-    public Integer getPrioridadeClinica() {
+    public Short getPrioridadeClinica() {
         return prioridadeClinica;
     }
 

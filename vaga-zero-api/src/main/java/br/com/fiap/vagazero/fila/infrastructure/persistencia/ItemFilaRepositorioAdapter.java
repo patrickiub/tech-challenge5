@@ -28,7 +28,7 @@ public class ItemFilaRepositorioAdapter implements ItemFilaRepositorio {
                 : LocalDateTime.now(clock);
         ItemFilaJpaEntity entidade = new ItemFilaJpaEntity(
                 itemFila.id(), itemFila.pacienteId(), itemFila.especialidade(), dataEntrada,
-                itemFila.prioridadeClinica(), itemFila.aceitaChamadoImediato(), itemFila.raioMaximoKm());
+                (short) itemFila.prioridadeClinica(), itemFila.aceitaChamadoImediato(), itemFila.raioMaximoKm());
         return paraDomain(jpaRepository.save(entidade));
     }
 
