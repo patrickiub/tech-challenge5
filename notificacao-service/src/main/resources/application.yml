@@ -4,3 +4,16 @@ spring:
 
 server:
   port: 8081
+
+vagazero:
+  chaos:
+    delay-ms: ${VAGAZERO_NOTIFICACAO_CHAOS_DELAY_MS:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
