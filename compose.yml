@@ -49,11 +49,6 @@ services:
       context: .
       dockerfile: vaga-zero-api/Dockerfile
     container_name: vaga-zero-api
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
     environment:
       VAGAZERO_DB_HOST: postgres
       VAGAZERO_DB_PORT: "5432"
@@ -67,8 +62,25 @@ services:
       VAGAZERO_CONVITE_SCHEDULER_INTERVALO_MS: "2000"
       VAGAZERO_RISCO_SCHEDULER_INTERVALO_MS: "3000"
       SPRING_PROFILES_ACTIVE: demo
+      VAGAZERO_NOTIFICACAO_BASE_URL: http://notificacao-service:8081
+      VAGAZERO_NOTIFICACAO_TIMEOUT_MS: "1000"
+      VAGAZERO_NOTIFICACAO_RETRY_TENTATIVAS: "2"
+      VAGAZERO_NOTIFICACAO_RETRY_ESPERA_MS: "200"
+      VAGAZERO_NOTIFICACAO_CB_JANELA: "4"
+      VAGAZERO_NOTIFICACAO_CB_MIN_CHAMADAS: "2"
+      VAGAZERO_NOTIFICACAO_CB_LIMIAR_FALHA: "50"
+      VAGAZERO_NOTIFICACAO_CB_ESPERA_ABERTO_MS: "5000"
+      VAGAZERO_NOTIFICACAO_CB_CHAMADAS_HALF_OPEN: "1"
+      VAGAZERO_NOTIFICACAO_REENVIO_INTERVALO_MS: "3000"
     ports:
       - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      notificacao-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 10s
@@ -76,22 +88,21 @@ services:
       retries: 15
       start_period: 40s
 
-  # notificacao-service: entra em 19/09 (Resilience4j target).
-  # Estrutura ja reservada para nao precisar reescrever este arquivo:
-  #
-  # notificacao-service:
-  #   build:
-  #     context: .
-  #     dockerfile: notificacao-service/Dockerfile
-  #   container_name: vaga-zero-notificacao
-  #   ports:
-  #     - "8081:8081"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 10
-  #     start_period: 20s
+  notificacao-service:
+    build:
+      context: .
+      dockerfile: notificacao-service/Dockerfile
+    container_name: vaga-zero-notificacao
+    environment:
+      VAGAZERO_NOTIFICACAO_CHAOS_DELAY_MS: "3000"
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
 volumes:
   postgres-data:
