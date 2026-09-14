@@ -57,6 +57,8 @@ public class PacienteService implements ConsultaPacienteUseCase, CriarPacienteUs
     @Override
     public PacienteResumo buscarResumo(Long pacienteId) {
         Paciente paciente = buscarPorId(pacienteId);
-        return new PacienteResumo(paciente.id(), paciente.nome(), paciente.latitude(), paciente.longitude());
+        return new PacienteResumo(
+                paciente.id(), paciente.nome(), paciente.latitude(), paciente.longitude(),
+                paciente.dataNascimento());
     }
 }

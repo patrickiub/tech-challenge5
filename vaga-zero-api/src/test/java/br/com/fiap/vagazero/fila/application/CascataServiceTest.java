@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -96,7 +97,9 @@ class CascataServiceTest {
 
     private void mockarLocalizacao(long pacienteId) {
         when(consultaPacienteUseCase.buscarResumo(pacienteId))
-                .thenReturn(new PacienteResumo(pacienteId, "Paciente " + pacienteId, BigDecimal.ZERO, BigDecimal.ZERO));
+                .thenReturn(new PacienteResumo(
+                        pacienteId, "Paciente " + pacienteId, BigDecimal.ZERO, BigDecimal.ZERO,
+                        LocalDate.of(1990, 1, 1)));
     }
 
     @Test
