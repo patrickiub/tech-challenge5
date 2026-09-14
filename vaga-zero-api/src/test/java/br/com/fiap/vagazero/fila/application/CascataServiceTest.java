@@ -145,7 +145,8 @@ class CascataServiceTest {
         when(conviteRepositorio.atualizarStatusSeAtual(5L, StatusConvite.ENVIADO, StatusConvite.ACEITO)).thenReturn(true);
         when(vagaCascataUseCase.mudarStatusSeAtual(VAGA_ID, StatusVaga.EM_CASCATA, StatusVaga.OCUPADA)).thenReturn(true);
         when(vagaCascataUseCase.buscarPorId(VAGA_ID)).thenReturn(vaga(StatusVaga.OCUPADA));
-        Agendamento agendamento = new Agendamento(50L, VAGA_ID, 100L, StatusAgendamento.CONFIRMADO, LocalDateTime.now(clock));
+        Agendamento agendamento = new Agendamento(
+                50L, VAGA_ID, 100L, StatusAgendamento.CONFIRMADO, LocalDateTime.now(clock), LocalDateTime.now(clock));
         when(agendamentoCascataUseCase.criarConfirmado(eq(VAGA_ID), eq(100L), any())).thenReturn(agendamento);
         ItemFila itemNaFila = item(100L, 3, LocalDateTime.now(clock).minusDays(1));
         when(itemFilaRepositorio.buscarPorPacienteEEspecialidade(100L, ESPECIALIDADE)).thenReturn(Optional.of(itemNaFila));

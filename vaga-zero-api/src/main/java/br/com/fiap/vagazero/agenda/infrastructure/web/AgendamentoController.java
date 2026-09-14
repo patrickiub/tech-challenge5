@@ -89,6 +89,20 @@ public class AgendamentoController {
                 vaga.especialidade(), List.of(KafkaTopics.AGENDAMENTO_CANCELADO, KafkaTopics.VAGA_LIBERADA));
     }
 
+    @Operation(
+            tags = "2 - Cadastros",
+            summary = "Confirmar presenca ativamente",
+            description = "O paciente confirma que vai comparecer. Reduz o score de risco de falta em 40 "
+                    + "pontos (regra fixa da tabela de scoring) e muda o status para CONFIRMADO. Consulte "
+                    + "'Consultar avaliacao de risco' logo em seguida para ver o efeito no score.")
+    @ApiResponse(responseCode = "200", description = "Presenca confirmada")
+    @ApiResponse(responseCode = "404", description = "Agendamento nao encontrado")
+    @ApiResponse(responseCode = "409", description = "Agendamento nao esta em um status que aceita confirmacao")
+    @PostMapping("/{id}/confirmar-presenca")
+    public AgendamentoResponse confirmarPresenca(@Parameter(example = "1") @PathVariable Long id) {
+        return responder(agendamentoService.confirmarPresenca(id));
+    }
+
     @Operation(tags = "2 - Cadastros", summary = "Atualizar status do agendamento (uso administrativo)")
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('GESTOR')")

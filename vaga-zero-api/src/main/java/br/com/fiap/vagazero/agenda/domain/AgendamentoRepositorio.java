@@ -11,5 +11,11 @@ public interface AgendamentoRepositorio {
 
     List<Agendamento> listarTodos();
 
+    List<Agendamento> listarPorPaciente(Long pacienteId);
+
+    List<Agendamento> listarPorStatus(StatusAgendamento status);
+
     void excluir(Long id);
+
+    void excluirTudo();
 }

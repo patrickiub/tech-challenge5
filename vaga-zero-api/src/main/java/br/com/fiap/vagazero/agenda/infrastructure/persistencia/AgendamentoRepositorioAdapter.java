@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import br.com.fiap.vagazero.agenda.domain.Agendamento;
 import br.com.fiap.vagazero.agenda.domain.AgendamentoRepositorio;
+import br.com.fiap.vagazero.agenda.domain.StatusAgendamento;
 
 @Repository
 public class AgendamentoRepositorioAdapter implements AgendamentoRepositorio {
@@ -45,13 +46,28 @@ public class AgendamentoRepositorioAdapter implements AgendamentoRepositorio {
     }
 
     @Override
+    public List<Agendamento> listarPorPaciente(Long pacienteId) {
+        return jpaRepository.findByPacienteId(pacienteId).stream().map(this::paraDomain).toList();
+    }
+
+    @Override
+    public List<Agendamento> listarPorStatus(StatusAgendamento status) {
+        return jpaRepository.findByStatus(status).stream().map(this::paraDomain).toList();
+    }
+
+    @Override
     public void excluir(Long id) {
         jpaRepository.deleteById(id);
+    }
+
+    @Override
+    public void excluirTudo() {
+        jpaRepository.deleteAll();
     }
 
     private Agendamento paraDomain(AgendamentoJpaEntity entidade) {
         return new Agendamento(
                 entidade.getId(), entidade.getVagaId(), entidade.getPacienteId(),
-                entidade.getStatus(), entidade.getConfirmadoEm());
+                entidade.getStatus(), entidade.getConfirmadoEm(), entidade.getCriadoEm());
     }
 }

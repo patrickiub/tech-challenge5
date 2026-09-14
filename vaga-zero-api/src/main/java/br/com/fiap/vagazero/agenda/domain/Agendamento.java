@@ -7,5 +7,6 @@ public record Agendamento(
         Long vagaId,
         Long pacienteId,
         StatusAgendamento status,
-        LocalDateTime confirmadoEm) {
+        LocalDateTime confirmadoEm,
+        LocalDateTime criadoEm) {
 }

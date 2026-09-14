@@ -9,7 +9,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -45,6 +47,8 @@ class AgendamentoServiceTest {
     @Mock
     private EventoPublisher eventoPublisher;
 
+    private final Clock clock = Clock.fixed(LocalDateTime.of(2026, 9, 14, 8, 0).atZone(ZoneId.of("America/Sao_Paulo")).toInstant(), ZoneId.of("America/Sao_Paulo"));
+
     private AgendamentoService agendamentoService;
 
     private static final Long AGENDAMENTO_ID = 1L;
@@ -52,11 +56,12 @@ class AgendamentoServiceTest {
     private static final Long PACIENTE_ID = 100L;
 
     private AgendamentoService criarServico() {
-        return new AgendamentoService(agendamentoRepositorio, vagaRepositorio, pacienteRepositorio, eventoPublisher);
+        return new AgendamentoService(
+                agendamentoRepositorio, vagaRepositorio, pacienteRepositorio, eventoPublisher, clock);
     }
 
     private Agendamento agendamento(StatusAgendamento status) {
-        return new Agendamento(AGENDAMENTO_ID, VAGA_ID, PACIENTE_ID, status, null);
+        return new Agendamento(AGENDAMENTO_ID, VAGA_ID, PACIENTE_ID, status, null, LocalDateTime.now(clock));
     }
 
     static Stream<StatusAgendamento> statusCancelaveis() {
