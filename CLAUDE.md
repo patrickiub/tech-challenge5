@@ -215,11 +215,11 @@ quando já passou pelas migrations do Flyway.
 | 12/09 | Compose subindo, esqueleto hexagonal, JWT, CRUD básico, Swagger |
 | 13/09 | Cascata completa funcionando ponta a ponta |
 | 17/09 (noite) | Scoring, job D-2, recursos de demo |
-| 19/09 | ~~Dockerização do vaga-zero-api~~ **concluída antecipadamente.** notificacao-service, Resilience4j, testes, diagramas, README |
+| 19/09 | ~~Dockerização do vaga-zero-api~~ **concluída antecipadamente.** ~~notificacao-service, Resilience4j, testes~~ **concluído.** diagramas, README |
 | 20/09 | Collection, relatório, roteiros de vídeo. **Code freeze.** |
 
 Prioridade se o tempo apertar: cascata funcionando > ~~compose em um comando~~ (concluído) >
-collection > scoring > relatório > resiliência.
+collection > scoring > relatório > ~~resiliência~~ (concluído).
 
 ## Controle de versão
 
