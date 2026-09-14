@@ -40,6 +40,22 @@ vagazero:
   convite:
     ttl-segundos: ${VAGAZERO_CONVITE_TTL_SEGUNDOS:1800}
     scheduler-intervalo-ms: ${VAGAZERO_CONVITE_SCHEDULER_INTERVALO_MS:2000}
+  risco:
+    scheduler-intervalo-ms: ${VAGAZERO_RISCO_SCHEDULER_INTERVALO_MS:3600000}
+  scoring:
+    pontos-por-falta: ${VAGAZERO_SCORING_PONTOS_POR_FALTA:25}
+    teto-pontos-faltas: ${VAGAZERO_SCORING_TETO_PONTOS_FALTAS:50}
+    distancia-limite-km: ${VAGAZERO_SCORING_DISTANCIA_LIMITE_KM:10}
+    pontos-distancia-acima-limite: ${VAGAZERO_SCORING_PONTOS_DISTANCIA:15}
+    antecedencia-limite-dias: ${VAGAZERO_SCORING_ANTECEDENCIA_LIMITE_DIAS:30}
+    pontos-antecedencia-acima-limite: ${VAGAZERO_SCORING_PONTOS_ANTECEDENCIA:10}
+    pontos-primeira-consulta-especialidade: ${VAGAZERO_SCORING_PONTOS_PRIMEIRA_CONSULTA:10}
+    idade-minima: ${VAGAZERO_SCORING_IDADE_MINIMA:18}
+    idade-maxima: ${VAGAZERO_SCORING_IDADE_MAXIMA:30}
+    pontos-faixa-etaria: ${VAGAZERO_SCORING_PONTOS_FAIXA_ETARIA:5}
+    pontos-confirmacao-presenca: ${VAGAZERO_SCORING_PONTOS_CONFIRMACAO:-40}
+    limite-baixo-medio: ${VAGAZERO_SCORING_LIMITE_BAIXO_MEDIO:30}
+    limite-medio-alto: ${VAGAZERO_SCORING_LIMITE_MEDIO_ALTO:60}
 
 springdoc:
   swagger-ui:
