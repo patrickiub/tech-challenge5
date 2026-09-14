@@ -9,7 +9,8 @@
     "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" }
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "notificacaoBaseUrl", "value": "http://localhost:8081", "type": "string" }
   ],
   "item": [
     {
@@ -1101,6 +1102,301 @@
               "path": ["vagas", "{{demoVagaMarisaId}}", "cascata"]
             },
             "description": "Prova visual do caminho preventivo: sem nenhum cancelamento manual, so a passagem do tempo, a vaga de Marisa foi liberada por causa do risco ALTO sem confirmacao e ja tem convite ENVIADO para o primeiro elegivel da fila."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "10 - Resiliencia: chaos, circuito e reprocessamento",
+      "item": [
+        {
+          "name": "Ligar chaos no notificacao-service",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('chaos ligado', () => pm.expect(pm.response.json().chaosLigado).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": {
+              "raw": "{{notificacaoBaseUrl}}/admin/chaos/on",
+              "host": ["{{notificacaoBaseUrl}}"],
+              "path": ["admin", "chaos", "on"]
+            },
+            "description": "A partir de agora, POST /notificacoes no notificacao-service dorme (VAGAZERO_NOTIFICACAO_CHAOS_DELAY_MS, default 3s) e depois falha - alvo do circuit breaker do vaga-zero-api."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset do cenario de demonstracao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.environment.set('demoVagaRobertoId', corpo.vagaParaCancelarId);",
+                  "pm.environment.set('demoAgendamentoRobertoId', corpo.agendamentoParaCancelarId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/demo/reset", "host": ["{{baseUrl}}"], "path": ["demo", "reset"] },
+            "description": "Estado limpo proprio deste caminho - tambem limpa avisos_pendentes de qualquer execucao anterior desta secao."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar agendamento de Roberto (dispara a cascata)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('agendamento cancelado', () => pm.expect(pm.response.json().status).to.eql('CANCELADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/agendamentos/{{demoAgendamentoRobertoId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["agendamentos", "{{demoAgendamentoRobertoId}}", "cancelar"]
+            },
+            "description": "Publica vaga.liberada -> a cascata monta o primeiro convite -> convite.enviado dispara o ConviteEnviadoListener, que tenta notificar via notificacao-service (com o chaos ligado, vai falhar)."
+          },
+          "response": []
+        },
+        {
+          "name": "Aguardar a notificacao falhar apos timeout+retry (~6s)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const esperaMs = 6000;",
+                  "const inicio = Date.now();",
+                  "while (Date.now() - inicio < esperaMs) { /* espera ocupada: consumo do listener + timeout(1s)+retry(200ms)+timeout(1s) antes do fallback enfileirar o aviso */ }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/vagas/{{demoVagaRobertoId}}", "host": ["{{baseUrl}}"], "path": ["vagas", "{{demoVagaRobertoId}}"] },
+            "description": "Requisicao neutra so para segurar ~6s e dar tempo as duas tentativas (timeout+retry) de falharem e o fallback enfileirar o aviso."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar que o convite foi criado mesmo assim (cascata nao quebrou)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('vaga em cascata com convite ENVIADO, apesar do notificacao-service indisponivel', () => {",
+                  "    pm.expect(corpo.statusVaga).to.eql('EM_CASCATA');",
+                  "    pm.expect(corpo.candidatos[0].statusConvite).to.eql('ENVIADO');",
+                  "});",
+                  "pm.environment.set('demoConviteResilienciaId', corpo.conviteAtivoId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{demoVagaRobertoId}}/cascata",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{demoVagaRobertoId}}", "cascata"]
+            },
+            "description": "A indisponibilidade da notificacao nao quebra a cascata: o convite existe e esta ENVIADO normalmente, mesmo com o aviso tendo falhado."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar aviso pendente com o circuito aberto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('aviso do convite aparece como PENDENTE', () => {",
+                  "    const aviso = corpo.find((a) => a.conviteId === parseInt(pm.environment.get('demoConviteResilienciaId'), 10));",
+                  "    pm.expect(aviso).to.not.be.undefined;",
+                  "    pm.expect(aviso.status).to.eql('PENDENTE');",
+                  "    pm.expect(aviso.tentativas).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/admin/avisos-pendentes", "host": ["{{baseUrl}}"], "path": ["admin", "avisos-pendentes"] },
+            "description": "Evidencia visual do reprocessamento: o aviso do convite acumula aqui enquanto o notificacao-service esta indisponivel."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar circuito aberto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('circuito OPEN', () => pm.expect(pm.response.json().estado).to.eql('OPEN'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/admin/circuito", "host": ["{{baseUrl}}"], "path": ["admin", "circuito"] },
+            "description": "Com minimum-number-of-calls=2 e retry=2 tentativas, um unico convite sob chaos ja e suficiente para abrir o circuito."
+          },
+          "response": []
+        },
+        {
+          "name": "Desligar chaos no notificacao-service",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('chaos desligado', () => pm.expect(pm.response.json().chaosLigado).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": {
+              "raw": "{{notificacaoBaseUrl}}/admin/chaos/off",
+              "host": ["{{notificacaoBaseUrl}}"],
+              "path": ["admin", "chaos", "off"]
+            },
+            "description": "POST /notificacoes volta a responder normalmente."
+          },
+          "response": []
+        },
+        {
+          "name": "Aguardar reenvio automatico e circuito fechar (~10s)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const esperaMs = 10000;",
+                  "const inicio = Date.now();",
+                  "while (Date.now() - inicio < esperaMs) { /* espera ocupada: wait-duration-in-open-state (5s) + intervalo do scheduler de reenvio (3s) + margem */ }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/vagas/{{demoVagaRobertoId}}", "host": ["{{baseUrl}}"], "path": ["vagas", "{{demoVagaRobertoId}}"] },
+            "description": "Requisicao neutra so para segurar ~10s: da tempo do circuito transitar para HALF_OPEN e do ReenvioAvisosScheduler pegar o aviso pendente e reenviar com sucesso."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar que a notificacao chegou (reprocessamento funcionou)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('notificacao do convite aparece recebida no notificacao-service', () => {",
+                  "    const recebida = corpo.find((n) => n.conviteId === parseInt(pm.environment.get('demoConviteResilienciaId'), 10));",
+                  "    pm.expect(recebida).to.not.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{notificacaoBaseUrl}}/notificacoes", "host": ["{{notificacaoBaseUrl}}"], "path": ["notificacoes"] },
+            "description": "O reenvio automatico chamou POST /notificacoes de novo, agora com sucesso (chaos desligado)."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar que o aviso sumiu da lista de pendentes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('aviso do convite nao aparece mais como pendente', () => {",
+                  "    const aviso = corpo.find((a) => a.conviteId === parseInt(pm.environment.get('demoConviteResilienciaId'), 10));",
+                  "    pm.expect(aviso).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/admin/avisos-pendentes", "host": ["{{baseUrl}}"], "path": ["admin", "avisos-pendentes"] },
+            "description": "O aviso foi marcado ENVIADO (nao aparece mais como PENDENTE) apos o reenvio automatico bem-sucedido."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar circuito fechado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('circuito CLOSED', () => pm.expect(pm.response.json().estado).to.eql('CLOSED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/admin/circuito", "host": ["{{baseUrl}}"], "path": ["admin", "circuito"] },
+            "description": "Com permitted-number-of-calls-in-half-open-state=1, o primeiro reenvio bem-sucedido em HALF_OPEN ja fecha o circuito."
           },
           "response": []
         }
