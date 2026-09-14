@@ -884,8 +884,8 @@
           ],
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/unidades/{{unidadeId}}", "host": ["{{baseUrl}}"], "path": ["unidades", "{{unidadeId}}"] },
-            "description": "Requisicao neutra usada so para segurar ~3s antes de consultar a cascata, dando tempo ao listener do modulo fila de processar vaga.liberada."
+            "url": { "raw": "{{baseUrl}}/vagas/{{demoVagaRobertoId}}", "host": ["{{baseUrl}}"], "path": ["vagas", "{{demoVagaRobertoId}}"] },
+            "description": "Requisicao neutra usada so para segurar ~3s antes de consultar a cascata, dando tempo ao listener do modulo fila de processar vaga.liberada. Usa a vaga recem-criada pelo reset desta secao (nao a variavel unidadeId da secao 1 - o reset apaga e recria unidades com IDs novos, entao aquela variavel fica obsoleta apos o primeiro /demo/reset)."
           },
           "response": []
         },
@@ -1025,6 +1025,32 @@
           "response": []
         },
         {
+          "name": "Reautenticar (token emitido antes do avanco expira)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"gestor@vagazero.com\",\n  \"senha\": \"gestor123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "description": "A validacao do JWT usa o mesmo Clock injetado que /demo/avancar-dias acabou de adiantar (regra do projeto: todo tempo vem do Clock, inclusive expiracao de token). O token obtido no login la na secao 0 foi emitido com base no tempo real e, apos o salto de 1 dia, passa a parecer expirado (expiracao padrao de 60 minutos) - as chamadas seguintes cairiam em 403. Reautenticar aqui emite um token novo, valido em relacao ao relogio ja avancado."
+          },
+          "response": []
+        },
+        {
           "name": "Aguardar o job D-2/D-1 rodar (~5s)",
           "event": [
             {
@@ -1044,8 +1070,8 @@
           ],
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/unidades/{{demoVagaMarisaId}}", "host": ["{{baseUrl}}"], "path": ["unidades", "{{demoVagaMarisaId}}"] },
-            "description": "Requisicao neutra so para segurar ~5s e dar tempo ao JobRiscoD2Scheduler de rodar (intervalo padrao de 3s no compose) e cancelar preventivamente o agendamento de Marisa."
+            "url": { "raw": "{{baseUrl}}/vagas/{{demoVagaMarisaId}}", "host": ["{{baseUrl}}"], "path": ["vagas", "{{demoVagaMarisaId}}"] },
+            "description": "Requisicao neutra so para segurar ~5s e dar tempo ao JobRiscoD2Scheduler de rodar (intervalo padrao de 3s no compose) e cancelar preventivamente o agendamento de Marisa. Usa a vaga certa (nao mais /unidades com o id trocado)."
           },
           "response": []
         },
