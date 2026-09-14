@@ -58,8 +58,8 @@ public class NotificacaoClient {
         postar(aviso);
     }
 
-    @SuppressWarnings("unused")
-    private void enviarFallback(AvisoNotificacao aviso, Throwable causa) {
+    /* package-private (nao private) para ser testavel diretamente, sem reflexao. */
+    void enviarFallback(AvisoNotificacao aviso, Throwable causa) {
         LocalDateTime agora = LocalDateTime.now(clock);
         AvisoPendente pendente = new AvisoPendente(
                 null, aviso.conviteId(), aviso.destinatario(), aviso.canal(), aviso.mensagem(),
@@ -91,8 +91,8 @@ public class NotificacaoClient {
         log.info("notificacao_reenviada_com_sucesso convite={} tentativas={}", pendente.conviteId(), enviado.tentativas());
     }
 
-    @SuppressWarnings("unused")
-    private void reenviarFallback(AvisoPendente pendente, Throwable causa) {
+    /* package-private (nao private) para ser testavel diretamente, sem reflexao. */
+    void reenviarFallback(AvisoPendente pendente, Throwable causa) {
         LocalDateTime agora = LocalDateTime.now(clock);
         AvisoPendente atualizado = new AvisoPendente(
                 pendente.id(), pendente.conviteId(), pendente.destinatario(), pendente.canal(),
