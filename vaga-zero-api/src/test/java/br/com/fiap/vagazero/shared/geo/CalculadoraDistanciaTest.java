@@ -1,4 +1,4 @@
-package br.com.fiap.vagazero.fila.domain;
+package br.com.fiap.vagazero.shared.geo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;

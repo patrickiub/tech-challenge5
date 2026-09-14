@@ -1,4 +1,4 @@
-package br.com.fiap.vagazero.fila.domain;
+package br.com.fiap.vagazero.shared.geo;
 
 import java.math.BigDecimal;
 

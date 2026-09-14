@@ -5,6 +5,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import br.com.fiap.vagazero.shared.geo.CalculadoraDistancia;
+
 /**
  * Seleciona e ordena os candidatos elegiveis a uma vaga liberada.
  *
