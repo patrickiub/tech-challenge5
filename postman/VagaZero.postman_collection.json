@@ -688,6 +688,397 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "7 - Demo: risco explicavel e confirmacao de presenca",
+      "item": [
+        {
+          "name": "Reset do cenario de demonstracao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('resposta traz os ids prontos dos dois caminhos', () => {",
+                  "    pm.expect(corpo.agendamentoParaCancelarId).to.be.a('number');",
+                  "    pm.expect(corpo.agendamentoAltoRiscoId).to.be.a('number');",
+                  "});",
+                  "pm.environment.set('demoVagaRobertoId', corpo.vagaParaCancelarId);",
+                  "pm.environment.set('demoAgendamentoRobertoId', corpo.agendamentoParaCancelarId);",
+                  "pm.environment.set('demoPacienteRobertoId', corpo.pacienteParaCancelarId);",
+                  "pm.environment.set('demoVagaMarisaId', corpo.vagaAltoRiscoId);",
+                  "pm.environment.set('demoAgendamentoMarisaId', corpo.agendamentoAltoRiscoId);",
+                  "pm.environment.set('demoPacienteMarisaId', corpo.pacienteAltoRiscoId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/demo/reset", "host": ["{{baseUrl}}"], "path": ["demo", "reset"] },
+            "description": "Requer o perfil Spring 'demo' ativo (ja ligado por padrao no compose.yml). Limpa qualquer estado anterior e repopula do zero: 1 unidade, 10 vagas de Oftalmologia, 30 pacientes na fila e os dois pacientes dos caminhos de demonstracao (Roberto Nunes para a cascata manual, Marisa Aparecida Guedes para o job de risco D-2/D-1). Cada secao de demonstracao desta collection comeca com o seu proprio reset, para nunca herdar estado de outro caminho - avancar o relogio em um caminho expira convites ativos do outro."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar risco de Roberto antes de confirmar presenca",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('score conta a primeira consulta na especialidade (+10)', () => {",
+                  "    pm.expect(corpo.score).to.eql(10);",
+                  "    pm.expect(corpo.classificacao).to.eql('BAIXO');",
+                  "    pm.expect(corpo.fatores.map((f) => f.codigo)).to.include('PRIMEIRA_CONSULTA_ESPECIALIDADE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/agendamentos/{{demoAgendamentoRobertoId}}/risco",
+              "host": ["{{baseUrl}}"],
+              "path": ["agendamentos", "{{demoAgendamentoRobertoId}}", "risco"]
+            },
+            "description": "Roberto nao tem faltas, mora perto da unidade e marcou com poucos dias de antecedencia - o unico fator que pesa e ser a primeira consulta dele nessa especialidade (+10). A resposta detalha score, classificacao e o fator a fator que a compoe: a explicabilidade do motor de regras."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirmar presenca de Roberto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('agendamento confirmado', () => {",
+                  "    pm.expect(corpo.status).to.eql('CONFIRMADO');",
+                  "    pm.expect(corpo.confirmadoEm).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/agendamentos/{{demoAgendamentoRobertoId}}/confirmar-presenca",
+              "host": ["{{baseUrl}}"],
+              "path": ["agendamentos", "{{demoAgendamentoRobertoId}}", "confirmar-presenca"]
+            },
+            "description": "O paciente confirma ativamente que vai comparecer. Regra fixa da tabela de scoring: -40 pontos no proximo calculo de risco."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar risco de Roberto apos confirmar (score cai para 0)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('confirmacao de presenca reduziu o score (piso em zero, nao fica negativo)', () => {",
+                  "    pm.expect(corpo.score).to.eql(0);",
+                  "    pm.expect(corpo.classificacao).to.eql('BAIXO');",
+                  "    pm.expect(corpo.fatores.map((f) => f.codigo)).to.include('CONFIRMACAO_PRESENCA');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/agendamentos/{{demoAgendamentoRobertoId}}/risco",
+              "host": ["{{baseUrl}}"],
+              "path": ["agendamentos", "{{demoAgendamentoRobertoId}}", "risco"]
+            },
+            "description": "Cada consulta recalcula e persiste uma nova avaliacao - por isso a confirmacao de presenca do passo anterior ja aparece refletida aqui: os +10 da primeira consulta continuam listados, mas os -40 da confirmacao derrubam o score (o motor nunca deixa o score final ficar negativo)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8 - Demo: cascata manual (via seed)",
+      "item": [
+        {
+          "name": "Reset do cenario de demonstracao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.environment.set('demoVagaRobertoId', corpo.vagaParaCancelarId);",
+                  "pm.environment.set('demoAgendamentoRobertoId', corpo.agendamentoParaCancelarId);",
+                  "pm.environment.set('demoPacienteRobertoId', corpo.pacienteParaCancelarId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/demo/reset", "host": ["{{baseUrl}}"], "path": ["demo", "reset"] },
+            "description": "Parte de um estado limpo proprio deste caminho - independente do que a secao anterior (7) tenha feito com o Roberto de la, este reset cria um Roberto novo, ainda AGENDADO."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar agendamento de Roberto (dispara a cascata)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('agendamento cancelado e eventos publicados', () => {",
+                  "    pm.expect(corpo.status).to.eql('CANCELADO');",
+                  "    pm.expect(corpo.eventosPublicados).to.include('vaga.liberada');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/agendamentos/{{demoAgendamentoRobertoId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["agendamentos", "{{demoAgendamentoRobertoId}}", "cancelar"]
+            },
+            "description": "Gatilho da cascata manual: cancela o agendamento de Roberto e publica agendamento.cancelado seguido de vaga.liberada."
+          },
+          "response": []
+        },
+        {
+          "name": "Aguardar consumo assincrono de vaga.liberada (~3s)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const esperaMs = 3000;",
+                  "const inicio = Date.now();",
+                  "while (Date.now() - inicio < esperaMs) { /* espera ocupada: da tempo ao listener Kafka de processar vaga.liberada */ }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/unidades/{{unidadeId}}", "host": ["{{baseUrl}}"], "path": ["unidades", "{{unidadeId}}"] },
+            "description": "Requisicao neutra usada so para segurar ~3s antes de consultar a cascata, dando tempo ao listener do modulo fila de processar vaga.liberada."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar estado da cascata (primeiro convite: Ana Beatriz Ramos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('vaga em cascata, primeiro chamado e Ana Beatriz Ramos (prioridade 5, mais antiga na fila entre os elegiveis dessa prioridade)', () => {",
+                  "    pm.expect(corpo.statusVaga).to.eql('EM_CASCATA');",
+                  "    pm.expect(corpo.candidatos[0].nomePaciente).to.eql('Ana Beatriz Ramos');",
+                  "    pm.expect(corpo.candidatos[0].statusConvite).to.eql('ENVIADO');",
+                  "});",
+                  "pm.environment.set('demoConviteAnaId', corpo.conviteAtivoId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{demoVagaRobertoId}}/cascata",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{demoVagaRobertoId}}", "cascata"]
+            },
+            "description": "Dos 30 pacientes semeados na fila, 18 sao elegiveis para Oftalmologia; Ana Beatriz Ramos vence a ordenacao (prioridadeClinica 5, na fila ha mais tempo entre os dois elegiveis dessa prioridade)."
+          },
+          "response": []
+        },
+        {
+          "name": "Ana Beatriz Ramos aceita o convite",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('vaga ocupada', () => {",
+                  "    pm.expect(corpo.estadoAtual.statusVaga).to.eql('OCUPADA');",
+                  "    pm.expect(corpo.eventosPublicados).to.include('vaga.preenchida');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/convites/{{demoConviteAnaId}}/aceitar",
+              "host": ["{{baseUrl}}"],
+              "path": ["convites", "{{demoConviteAnaId}}", "aceitar"]
+            },
+            "description": "Fecha o ciclo EM_CASCATA -> OCUPADA e cria o novo agendamento CONFIRMADO para Ana."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "9 - Demo: job de risco D-2/D-1 (via seed)",
+      "item": [
+        {
+          "name": "Reset do cenario de demonstracao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.environment.set('demoVagaMarisaId', corpo.vagaAltoRiscoId);",
+                  "pm.environment.set('demoAgendamentoMarisaId', corpo.agendamentoAltoRiscoId);",
+                  "pm.environment.set('demoPacienteMarisaId', corpo.pacienteAltoRiscoId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/demo/reset", "host": ["{{baseUrl}}"], "path": ["demo", "reset"] },
+            "description": "Estado limpo proprio deste caminho: reseta o relogio para o instante real e recria Marisa com a vaga a exatamente D+2. Rodar este reset por ultimo tambem descarta qualquer convite ativo que a secao 8 tenha deixado, ja que os dois caminhos competem pela mesma fila de Oftalmologia."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar risco de Marisa (ALTO, score 65)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('2 faltas (+50, teto) + distancia 22km>10km (+15) = 65, ALTO', () => {",
+                  "    pm.expect(corpo.score).to.eql(65);",
+                  "    pm.expect(corpo.classificacao).to.eql('ALTO');",
+                  "    pm.expect(corpo.fatores.map((f) => f.codigo)).to.include.members(['FALTAS_RECENTES', 'DISTANCIA_ACIMA_DO_LIMITE']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/agendamentos/{{demoAgendamentoMarisaId}}/risco",
+              "host": ["{{baseUrl}}"],
+              "path": ["agendamentos", "{{demoAgendamentoMarisaId}}", "risco"]
+            },
+            "description": "A consulta calcula na hora, sem depender do job rodar antes - mostra a explicabilidade do score ALTO que vai levar a liberacao preventiva da vaga."
+          },
+          "response": []
+        },
+        {
+          "name": "Avancar o relogio exatamente 1 dia (diasAte=1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('avancou 1 dia', () => pm.expect(pm.response.json().diasAvancados).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/demo/avancar-dias/1", "host": ["{{baseUrl}}"], "path": ["demo", "avancar-dias", "1"] },
+            "description": "A vaga de Marisa nasceu a D+2 do instante do reset. Avancando exatamente 1 dia, ela passa a estar a D+1 (diasAte<=1): condicao para o job liberar preventivamente. Nao avance mais que 1 dia aqui - a vaga passaria da data e viraria PERDIDA em vez de entrar em cascata."
+          },
+          "response": []
+        },
+        {
+          "name": "Aguardar o job D-2/D-1 rodar (~5s)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const esperaMs = 5000;",
+                  "const inicio = Date.now();",
+                  "while (Date.now() - inicio < esperaMs) { /* espera ocupada: intervalo do scheduler de risco (VAGAZERO_RISCO_SCHEDULER_INTERVALO_MS=3000) + margem */ }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/unidades/{{demoVagaMarisaId}}", "host": ["{{baseUrl}}"], "path": ["unidades", "{{demoVagaMarisaId}}"] },
+            "description": "Requisicao neutra so para segurar ~5s e dar tempo ao JobRiscoD2Scheduler de rodar (intervalo padrao de 3s no compose) e cancelar preventivamente o agendamento de Marisa."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirmar vaga liberada preventivamente (EM_CASCATA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('job liberou a vaga e iniciou a cascata (mesma fila do caminho 8 - Ana Beatriz Ramos vence de novo)', () => {",
+                  "    pm.expect(corpo.statusVaga).to.eql('EM_CASCATA');",
+                  "    pm.expect(corpo.candidatos[0].nomePaciente).to.eql('Ana Beatriz Ramos');",
+                  "    pm.expect(corpo.candidatos[0].statusConvite).to.eql('ENVIADO');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{demoVagaMarisaId}}/cascata",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{demoVagaMarisaId}}", "cascata"]
+            },
+            "description": "Prova visual do caminho preventivo: sem nenhum cancelamento manual, so a passagem do tempo, a vaga de Marisa foi liberada por causa do risco ALTO sem confirmacao e ja tem convite ENVIADO para o primeiro elegivel da fila."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

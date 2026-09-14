@@ -132,11 +132,11 @@ public class SeedService {
 
         return new SeedResultado(
                 unidade.id(), 10, PERFIS_FILA.size(),
-                agendamentoRoberto.id(), roberto.id(),
+                vagaRoberto.id(), agendamentoRoberto.id(), roberto.id(),
                 "Caminho 1 - cascata manual: POST /agendamentos/" + agendamentoRoberto.id() + "/cancelar libera "
                         + "a vaga de Roberto Nunes e inicia a cascata imediatamente. Acompanhe com GET "
                         + "/vagas/" + vagaRoberto.id() + "/cascata.",
-                agendamentoMarisa.id(), marisa.id(),
+                vagaMarisa.id(), agendamentoMarisa.id(), marisa.id(),
                 "Caminho 2 - job D-2/D-1: a vaga de Marisa Aparecida Guedes esta a 2 dias (job avalia "
                         + "automaticamente em poucos segundos e classifica ALTO: 2 faltas nos ultimos 12 meses "
                         + "+50, distancia 22km>10km +15 = 65). Chame POST /demo/avancar-dias/1 (exatamente 1 - "
