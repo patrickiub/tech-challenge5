@@ -21,6 +21,7 @@ import br.com.fiap.vagazero.agenda.application.VagaCascataUseCase;
 import br.com.fiap.vagazero.agenda.domain.Agendamento;
 import br.com.fiap.vagazero.agenda.domain.StatusVaga;
 import br.com.fiap.vagazero.agenda.domain.Vaga;
+import br.com.fiap.vagazero.fila.domain.AvisoPendenteRepositorio;
 import br.com.fiap.vagazero.fila.domain.CandidatoElegivel;
 import br.com.fiap.vagazero.fila.domain.Convite;
 import br.com.fiap.vagazero.fila.domain.ConviteIndisponivelException;
@@ -51,6 +52,7 @@ public class CascataService implements LimparFilaUseCase {
 
     private final ItemFilaRepositorio itemFilaRepositorio;
     private final ConviteRepositorio conviteRepositorio;
+    private final AvisoPendenteRepositorio avisoPendenteRepositorio;
     private final ServicoElegibilidadeCascata servicoElegibilidade = new ServicoElegibilidadeCascata();
     private final VagaCascataUseCase vagaCascataUseCase;
     private final AgendamentoCascataUseCase agendamentoCascataUseCase;
@@ -63,6 +65,7 @@ public class CascataService implements LimparFilaUseCase {
     public CascataService(
             ItemFilaRepositorio itemFilaRepositorio,
             ConviteRepositorio conviteRepositorio,
+            AvisoPendenteRepositorio avisoPendenteRepositorio,
             VagaCascataUseCase vagaCascataUseCase,
             AgendamentoCascataUseCase agendamentoCascataUseCase,
             ConsultaPacienteUseCase consultaPacienteUseCase,
@@ -72,6 +75,7 @@ public class CascataService implements LimparFilaUseCase {
             @Value("${vagazero.convite.ttl-segundos}") long ttlSegundos) {
         this.itemFilaRepositorio = itemFilaRepositorio;
         this.conviteRepositorio = conviteRepositorio;
+        this.avisoPendenteRepositorio = avisoPendenteRepositorio;
         this.vagaCascataUseCase = vagaCascataUseCase;
         this.agendamentoCascataUseCase = agendamentoCascataUseCase;
         this.consultaPacienteUseCase = consultaPacienteUseCase;
@@ -232,6 +236,7 @@ public class CascataService implements LimparFilaUseCase {
 
     @Override
     public void limparTudo() {
+        avisoPendenteRepositorio.excluirTudo();
         conviteRepositorio.excluirTudo();
         itemFilaRepositorio.excluirTudo();
     }

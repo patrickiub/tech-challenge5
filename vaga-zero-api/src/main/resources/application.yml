@@ -56,6 +56,29 @@ vagazero:
     pontos-confirmacao-presenca: ${VAGAZERO_SCORING_PONTOS_CONFIRMACAO:-40}
     limite-baixo-medio: ${VAGAZERO_SCORING_LIMITE_BAIXO_MEDIO:30}
     limite-medio-alto: ${VAGAZERO_SCORING_LIMITE_MEDIO_ALTO:60}
+  notificacao:
+    base-url: ${VAGAZERO_NOTIFICACAO_BASE_URL:http://localhost:8081}
+    timeout-ms: ${VAGAZERO_NOTIFICACAO_TIMEOUT_MS:1000}
+    reenvio-intervalo-ms: ${VAGAZERO_NOTIFICACAO_REENVIO_INTERVALO_MS:3000}
+
+resilience4j:
+  retry:
+    retry-aspect-order: 1
+    instances:
+      notificacao:
+        max-attempts: ${VAGAZERO_NOTIFICACAO_RETRY_TENTATIVAS:2}
+        wait-duration: ${VAGAZERO_NOTIFICACAO_RETRY_ESPERA_MS:200}ms
+  circuitbreaker:
+    circuit-breaker-aspect-order: 2
+    instances:
+      notificacao:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: ${VAGAZERO_NOTIFICACAO_CB_JANELA:4}
+        minimum-number-of-calls: ${VAGAZERO_NOTIFICACAO_CB_MIN_CHAMADAS:2}
+        failure-rate-threshold: ${VAGAZERO_NOTIFICACAO_CB_LIMIAR_FALHA:50}
+        wait-duration-in-open-state: ${VAGAZERO_NOTIFICACAO_CB_ESPERA_ABERTO_MS:5000}ms
+        permitted-number-of-calls-in-half-open-state: ${VAGAZERO_NOTIFICACAO_CB_CHAMADAS_HALF_OPEN:1}
+        automatic-transition-from-open-to-half-open-enabled: true
 
 springdoc:
   swagger-ui:
@@ -68,7 +91,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,circuitbreakers,circuitbreakerevents
   endpoint:
     health:
       show-details: never
