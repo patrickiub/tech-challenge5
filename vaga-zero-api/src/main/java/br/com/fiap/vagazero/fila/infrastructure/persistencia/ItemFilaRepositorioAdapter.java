@@ -57,6 +57,11 @@ public class ItemFilaRepositorioAdapter implements ItemFilaRepositorio {
         jpaRepository.deleteById(id);
     }
 
+    @Override
+    public void excluirTudo() {
+        jpaRepository.deleteAll();
+    }
+
     private ItemFila paraDomain(ItemFilaJpaEntity entidade) {
         return new ItemFila(
                 entidade.getId(), entidade.getPacienteId(), entidade.getEspecialidade(),

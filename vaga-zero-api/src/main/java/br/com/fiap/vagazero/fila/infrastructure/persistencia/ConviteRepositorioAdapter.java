@@ -49,6 +49,11 @@ public class ConviteRepositorioAdapter implements ConviteRepositorio {
         return jpaRepository.atualizarStatusSeAtual(id, statusEsperado, statusNovo) > 0;
     }
 
+    @Override
+    public void excluirTudo() {
+        jpaRepository.deleteAll();
+    }
+
     private Convite paraDomain(ConviteJpaEntity entidade) {
         return new Convite(
                 entidade.getId(), entidade.getVagaId(), entidade.getPacienteId(), entidade.getEnviadoEm(),

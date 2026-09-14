@@ -14,4 +14,10 @@ public interface PacienteRepositorio {
     void excluir(Long id);
 
     boolean existePorCns(String cns);
+
+    /**
+     * Usado pelo reset de demonstracao: preserva o paciente fixo criado pela
+     * migration V2 (vinculado ao usuario de login PACIENTE de demonstracao).
+     */
+    void excluirTodosExceto(String cnsFixo);
 }

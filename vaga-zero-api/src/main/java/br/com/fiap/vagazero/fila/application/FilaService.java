@@ -25,9 +25,21 @@ public class FilaService {
     public ItemFila entrar(
             Long pacienteId, String especialidade, int prioridadeClinica, boolean aceitaChamadoImediato,
             BigDecimal raioMaximoKm) {
+        return entrar(pacienteId, especialidade, prioridadeClinica, aceitaChamadoImediato, raioMaximoKm,
+                LocalDateTime.now(clock));
+    }
+
+    /**
+     * Variante usada pelo modulo demo para semear a fila com tempos de
+     * espera variados (dataEntrada no passado), exercitando o desempate por
+     * tempo de espera na ordenacao da cascata.
+     */
+    public ItemFila entrar(
+            Long pacienteId, String especialidade, int prioridadeClinica, boolean aceitaChamadoImediato,
+            BigDecimal raioMaximoKm, LocalDateTime dataEntrada) {
         ItemFila item = new ItemFila(
-                null, pacienteId, especialidade, LocalDateTime.now(clock), prioridadeClinica,
-                aceitaChamadoImediato, raioMaximoKm);
+                null, pacienteId, especialidade, dataEntrada, prioridadeClinica, aceitaChamadoImediato,
+                raioMaximoKm);
         return itemFilaRepositorio.salvar(item);
     }
 

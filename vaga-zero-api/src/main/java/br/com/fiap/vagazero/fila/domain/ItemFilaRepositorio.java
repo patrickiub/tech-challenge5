@@ -16,4 +16,6 @@ public interface ItemFilaRepositorio {
     Optional<ItemFila> buscarPorPacienteEEspecialidade(Long pacienteId, String especialidade);
 
     void excluir(Long id);
+
+    void excluirTudo();
 }

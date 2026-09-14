@@ -53,6 +53,11 @@ public class UnidadeRepositorioAdapter implements UnidadeRepositorio {
         return jpaRepository.existsById(id);
     }
 
+    @Override
+    public void excluirTudo() {
+        jpaRepository.deleteAll();
+    }
+
     private Unidade paraDomain(UnidadeJpaEntity entidade) {
         return new Unidade(entidade.getId(), entidade.getNome(), entidade.getLatitude(), entidade.getLongitude());
     }

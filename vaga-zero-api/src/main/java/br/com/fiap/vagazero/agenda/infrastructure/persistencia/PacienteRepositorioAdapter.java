@@ -54,6 +54,11 @@ public class PacienteRepositorioAdapter implements PacienteRepositorio {
         return jpaRepository.existsByCns(cns);
     }
 
+    @Override
+    public void excluirTodosExceto(String cnsFixo) {
+        jpaRepository.deleteByCnsNot(cnsFixo);
+    }
+
     private Paciente paraDomain(PacienteJpaEntity entidade) {
         return new Paciente(
                 entidade.getId(), entidade.getNome(), entidade.getCns(), entidade.getTelefone(),

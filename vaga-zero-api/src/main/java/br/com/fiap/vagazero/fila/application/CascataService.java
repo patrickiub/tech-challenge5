@@ -47,7 +47,7 @@ import br.com.fiap.vagazero.shared.kafka.KafkaTopics;
  * elegibilidade/ordenacao, sem tabela extra.
  */
 @Service
-public class CascataService {
+public class CascataService implements LimparFilaUseCase {
 
     private final ItemFilaRepositorio itemFilaRepositorio;
     private final ConviteRepositorio conviteRepositorio;
@@ -228,6 +228,12 @@ public class CascataService {
         eventoPublisher.publicar(
                 KafkaTopics.CONVITE_ENVIADO, String.valueOf(vagaId),
                 new ConviteEnviadoEvento(salvo.id(), vagaId, salvo.pacienteId(), expiraEm, ordem));
+    }
+
+    @Override
+    public void limparTudo() {
+        conviteRepositorio.excluirTudo();
+        itemFilaRepositorio.excluirTudo();
     }
 
     private List<CandidatoElegivel> planejarCandidatos(Vaga vaga) {

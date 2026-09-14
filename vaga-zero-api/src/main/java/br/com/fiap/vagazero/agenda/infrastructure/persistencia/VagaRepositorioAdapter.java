@@ -55,6 +55,11 @@ public class VagaRepositorioAdapter implements VagaRepositorio {
         return jpaRepository.mudarStatusSeAtual(id, statusEsperado, statusNovo) > 0;
     }
 
+    @Override
+    public void excluirTudo() {
+        jpaRepository.deleteAll();
+    }
+
     private Vaga paraDomain(VagaJpaEntity entidade) {
         return new Vaga(
                 entidade.getId(), entidade.getUnidadeId(), entidade.getEspecialidade(),
