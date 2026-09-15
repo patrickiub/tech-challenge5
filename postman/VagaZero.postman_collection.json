@@ -30,7 +30,8 @@
                   "});",
                   "pm.environment.set('token', corpo.token);",
                   "const execId = String(Math.floor(100000 + Math.random() * 900000));",
-                  "pm.environment.set('execId', execId);"
+                  "pm.environment.set('execId', execId);",
+                  "pm.environment.set('especialidadeTeste', 'Oftalmologia-' + execId);"
                 ]
               }
             }
@@ -120,7 +121,7 @@
                   "const corpo = pm.response.json();",
                   "pm.test('vaga criada como DISPONIVEL', () => {",
                   "    pm.expect(corpo.status).to.eql('DISPONIVEL');",
-                  "    pm.expect(corpo.especialidade).to.eql('Oftalmologia');",
+                  "    pm.expect(corpo.especialidade).to.eql(pm.environment.get('especialidadeTeste'));",
                   "});",
                   "pm.environment.set('vagaId', corpo.id);"
                 ]
@@ -132,10 +133,10 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"unidadeId\": {{unidadeId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"profissional\": \"Dra. Beatriz Lima\",\n  \"dataHora\": \"2026-10-15T09:00:00\"\n}"
+              "raw": "{\n  \"unidadeId\": {{unidadeId}},\n  \"especialidade\": \"{{especialidadeTeste}}\",\n  \"profissional\": \"Dra. Beatriz Lima\",\n  \"dataHora\": \"2026-10-15T09:00:00\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/vagas", "host": ["{{baseUrl}}"], "path": ["vagas"] },
-            "description": "Vaga de Oftalmologia na unidade recem-criada, com data no futuro (necessario: a cascata so avanca convites enquanto a data da vaga nao chegou). E esta vaga que sera cancelada e disputada pela fila mais adiante."
+            "description": "Vaga de Oftalmologia na unidade recem-criada, com data no futuro (necessario: a cascata so avanca convites enquanto a data da vaga nao chegou). E esta vaga que sera cancelada e disputada pela fila mais adiante. A especialidade usa um sufixo unico por execucao ({{especialidadeTeste}}) para isolar a fila desta rodada de qualquer paciente deixado por uma execucao anterior (manual ou por /demo/reset) - sem isso, dois pacientes de nome igual mas id diferente, com a mesma prioridade e coordenadas, empatam na ordenacao e o mais antigo (de uma rodada anterior) vence."
           },
           "response": []
         }
@@ -191,7 +192,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pacienteId\": {{pacienteCarlosId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"prioridadeClinica\": 5,\n  \"aceitaChamadoImediato\": true,\n  \"raioMaximoKm\": 20.0\n}"
+              "raw": "{\n  \"pacienteId\": {{pacienteCarlosId}},\n  \"especialidade\": \"{{especialidadeTeste}}\",\n  \"prioridadeClinica\": 5,\n  \"aceitaChamadoImediato\": true,\n  \"raioMaximoKm\": 20.0\n}"
             },
             "url": { "raw": "{{baseUrl}}/fila", "host": ["{{baseUrl}}"], "path": ["fila"] },
             "description": "Prioridade clinica maxima (5), aceita chamado imediato e esta dentro do raio - elegivel e primeiro na ordenacao da cascata (prioridadeClinica desc e o primeiro criterio de ordenacao)."
@@ -242,7 +243,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pacienteId\": {{pacienteBeatrizId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"prioridadeClinica\": 4,\n  \"aceitaChamadoImediato\": true,\n  \"raioMaximoKm\": 20.0\n}"
+              "raw": "{\n  \"pacienteId\": {{pacienteBeatrizId}},\n  \"especialidade\": \"{{especialidadeTeste}}\",\n  \"prioridadeClinica\": 4,\n  \"aceitaChamadoImediato\": true,\n  \"raioMaximoKm\": 20.0\n}"
             },
             "url": { "raw": "{{baseUrl}}/fila", "host": ["{{baseUrl}}"], "path": ["fila"] },
             "description": "Elegivel (mesma especialidade, aceita chamado imediato, dentro do raio), mas com prioridadeClinica menor que Carlos - segundo na ordenacao da cascata."
@@ -293,7 +294,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pacienteId\": {{pacienteDiegoId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"prioridadeClinica\": 3,\n  \"aceitaChamadoImediato\": false,\n  \"raioMaximoKm\": 20.0\n}"
+              "raw": "{\n  \"pacienteId\": {{pacienteDiegoId}},\n  \"especialidade\": \"{{especialidadeTeste}}\",\n  \"prioridadeClinica\": 3,\n  \"aceitaChamadoImediato\": false,\n  \"raioMaximoKm\": 20.0\n}"
             },
             "url": { "raw": "{{baseUrl}}/fila", "host": ["{{baseUrl}}"], "path": ["fila"] },
             "description": "Entra na fila normalmente (o cadastro em si nao exige aceitar chamado imediato), mas o motor de cascata vai ignora-lo por completo: a regra de elegibilidade exige aceitaChamadoImediato=true."
@@ -344,7 +345,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pacienteId\": {{pacienteFernandaId}},\n  \"especialidade\": \"Oftalmologia\",\n  \"prioridadeClinica\": 3,\n  \"aceitaChamadoImediato\": true,\n  \"raioMaximoKm\": 10.0\n}"
+              "raw": "{\n  \"pacienteId\": {{pacienteFernandaId}},\n  \"especialidade\": \"{{especialidadeTeste}}\",\n  \"prioridadeClinica\": 3,\n  \"aceitaChamadoImediato\": true,\n  \"raioMaximoKm\": 10.0\n}"
             },
             "url": { "raw": "{{baseUrl}}/fila", "host": ["{{baseUrl}}"], "path": ["fila"] },
             "description": "Aceita chamado imediato, mas declarou um raio maximo de 10km e esta a quase 40km da unidade - fica de fora da cascata pelo filtro de distancia, mesmo com prioridade igual a de Diego."
@@ -374,10 +375,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/fila?especialidade=Oftalmologia",
+              "raw": "{{baseUrl}}/fila?especialidade={{especialidadeTeste}}",
               "host": ["{{baseUrl}}"],
               "path": ["fila"],
-              "query": [{ "key": "especialidade", "value": "Oftalmologia" }]
+              "query": [{ "key": "especialidade", "value": "{{especialidadeTeste}}" }]
             },
             "description": "Mostra a populacao candidata bruta (os 4 pacientes cadastrados acima), antes de qualquer filtro de elegibilidade ou ordenacao. Compare com o resultado de 'Consultar estado da cascata' mais adiante, que ja aplica prioridadeClinica, aceitaChamadoImediato e raioMaximoKm."
           },
@@ -679,10 +680,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/fila?especialidade=Oftalmologia",
+              "raw": "{{baseUrl}}/fila?especialidade={{especialidadeTeste}}",
               "host": ["{{baseUrl}}"],
               "path": ["fila"],
-              "query": [{ "key": "especialidade", "value": "Oftalmologia" }]
+              "query": [{ "key": "especialidade", "value": "{{especialidadeTeste}}" }]
             },
             "description": "Passo final da narrativa: so quem aceita a vaga sai da fila. Carlos (convite expirado) e os inelegiveis Diego e Fernanda continuam la, disponiveis para a proxima vaga que abrir em Oftalmologia."
           },
