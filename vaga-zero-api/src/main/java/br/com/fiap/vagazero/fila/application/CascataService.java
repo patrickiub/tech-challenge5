@@ -21,7 +21,6 @@ import br.com.fiap.vagazero.agenda.application.VagaCascataUseCase;
 import br.com.fiap.vagazero.agenda.domain.Agendamento;
 import br.com.fiap.vagazero.agenda.domain.StatusVaga;
 import br.com.fiap.vagazero.agenda.domain.Vaga;
-import br.com.fiap.vagazero.fila.domain.AvisoPendenteRepositorio;
 import br.com.fiap.vagazero.fila.domain.CandidatoElegivel;
 import br.com.fiap.vagazero.fila.domain.Convite;
 import br.com.fiap.vagazero.fila.domain.ConviteIndisponivelException;
@@ -48,11 +47,10 @@ import br.com.fiap.vagazero.shared.kafka.KafkaTopics;
  * elegibilidade/ordenacao, sem tabela extra.
  */
 @Service
-public class CascataService implements LimparFilaUseCase {
+public class CascataService {
 
     private final ItemFilaRepositorio itemFilaRepositorio;
     private final ConviteRepositorio conviteRepositorio;
-    private final AvisoPendenteRepositorio avisoPendenteRepositorio;
     private final ServicoElegibilidadeCascata servicoElegibilidade = new ServicoElegibilidadeCascata();
     private final VagaCascataUseCase vagaCascataUseCase;
     private final AgendamentoCascataUseCase agendamentoCascataUseCase;
@@ -65,7 +63,6 @@ public class CascataService implements LimparFilaUseCase {
     public CascataService(
             ItemFilaRepositorio itemFilaRepositorio,
             ConviteRepositorio conviteRepositorio,
-            AvisoPendenteRepositorio avisoPendenteRepositorio,
             VagaCascataUseCase vagaCascataUseCase,
             AgendamentoCascataUseCase agendamentoCascataUseCase,
             ConsultaPacienteUseCase consultaPacienteUseCase,
@@ -75,7 +72,6 @@ public class CascataService implements LimparFilaUseCase {
             @Value("${vagazero.convite.ttl-segundos}") long ttlSegundos) {
         this.itemFilaRepositorio = itemFilaRepositorio;
         this.conviteRepositorio = conviteRepositorio;
-        this.avisoPendenteRepositorio = avisoPendenteRepositorio;
         this.vagaCascataUseCase = vagaCascataUseCase;
         this.agendamentoCascataUseCase = agendamentoCascataUseCase;
         this.consultaPacienteUseCase = consultaPacienteUseCase;
@@ -232,13 +228,6 @@ public class CascataService implements LimparFilaUseCase {
         eventoPublisher.publicar(
                 KafkaTopics.CONVITE_ENVIADO, String.valueOf(vagaId),
                 new ConviteEnviadoEvento(salvo.id(), vagaId, salvo.pacienteId(), expiraEm, ordem));
-    }
-
-    @Override
-    public void limparTudo() {
-        avisoPendenteRepositorio.excluirTudo();
-        conviteRepositorio.excluirTudo();
-        itemFilaRepositorio.excluirTudo();
     }
 
     private List<CandidatoElegivel> planejarCandidatos(Vaga vaga) {

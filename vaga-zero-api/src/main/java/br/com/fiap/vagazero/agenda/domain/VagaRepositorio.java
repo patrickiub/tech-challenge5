@@ -18,6 +18,4 @@ public interface VagaRepositorio {
      * Retorna true se a linha foi de fato alterada.
      */
     boolean mudarStatusSeAtual(Long id, StatusVaga statusEsperado, StatusVaga statusNovo);
-
-    void excluirTudo();
 }

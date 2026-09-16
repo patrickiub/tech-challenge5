@@ -16,6 +16,4 @@ public interface AgendamentoRepositorio {
     List<Agendamento> listarPorStatus(StatusAgendamento status);
 
     void excluir(Long id);
-
-    void excluirTudo();
 }

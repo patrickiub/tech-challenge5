@@ -7,6 +7,4 @@ public interface AvisoPendenteRepositorio {
     AvisoPendente salvar(AvisoPendente aviso);
 
     List<AvisoPendente> listarPendentes();
-
-    void excluirTudo();
 }

@@ -21,6 +21,4 @@ public interface ConviteRepositorio {
      * expiracao por TTL.
      */
     boolean atualizarStatusSeAtual(Long id, StatusConvite statusEsperado, StatusConvite statusNovo);
-
-    void excluirTudo();
 }

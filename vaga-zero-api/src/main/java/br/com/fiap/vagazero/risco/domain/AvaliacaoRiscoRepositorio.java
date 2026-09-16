@@ -7,6 +7,4 @@ public interface AvaliacaoRiscoRepositorio {
     AvaliacaoRisco salvar(AvaliacaoRisco avaliacao);
 
     Optional<AvaliacaoRisco> buscarUltimaPorAgendamento(Long agendamentoId);
-
-    void excluirTudo();
 }

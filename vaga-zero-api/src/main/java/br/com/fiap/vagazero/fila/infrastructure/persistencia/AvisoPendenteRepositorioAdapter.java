@@ -30,11 +30,6 @@ public class AvisoPendenteRepositorioAdapter implements AvisoPendenteRepositorio
         return jpaRepository.findByStatus(StatusAviso.PENDENTE).stream().map(this::paraDomain).toList();
     }
 
-    @Override
-    public void excluirTudo() {
-        jpaRepository.deleteAll();
-    }
-
     private AvisoPendente paraDomain(AvisoPendenteJpaEntity entidade) {
         return new AvisoPendente(
                 entidade.getId(), entidade.getConviteId(), entidade.getDestinatario(), entidade.getCanal(),

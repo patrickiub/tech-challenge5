@@ -49,12 +49,6 @@ public class AvaliacaoRiscoRepositorioAdapter implements AvaliacaoRiscoRepositor
                 .map(this::paraDomain);
     }
 
-    @Override
-    public void excluirTudo() {
-        fatorJpaRepository.deleteAll();
-        jpaRepository.deleteAll();
-    }
-
     private AvaliacaoRisco paraDomain(AvaliacaoRiscoJpaEntity entidade) {
         List<FatorRisco> fatores = fatorJpaRepository.findByAvaliacaoRiscoId(entidade.getId()).stream()
                 .map(f -> new FatorRisco(f.getCodigo(), f.getDescricao(), f.getPontos()))

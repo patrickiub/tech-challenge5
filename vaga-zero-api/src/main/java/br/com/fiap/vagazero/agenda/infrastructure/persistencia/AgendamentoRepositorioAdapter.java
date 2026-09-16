@@ -60,11 +60,6 @@ public class AgendamentoRepositorioAdapter implements AgendamentoRepositorio {
         jpaRepository.deleteById(id);
     }
 
-    @Override
-    public void excluirTudo() {
-        jpaRepository.deleteAll();
-    }
-
     private Agendamento paraDomain(AgendamentoJpaEntity entidade) {
         return new Agendamento(
                 entidade.getId(), entidade.getVagaId(), entidade.getPacienteId(),

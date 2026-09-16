@@ -5,8 +5,10 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import br.com.fiap.vagazero.agenda.application.AgendamentoService;
 import br.com.fiap.vagazero.agenda.application.LimparAgendaUseCase;
@@ -19,9 +21,8 @@ import br.com.fiap.vagazero.agenda.domain.StatusAgendamento;
 import br.com.fiap.vagazero.agenda.domain.Unidade;
 import br.com.fiap.vagazero.agenda.domain.Vaga;
 import br.com.fiap.vagazero.demo.infrastructure.RelogioAjustavel;
+import br.com.fiap.vagazero.demo.infrastructure.persistencia.TruncadorDeTabelas;
 import br.com.fiap.vagazero.fila.application.FilaService;
-import br.com.fiap.vagazero.fila.application.LimparFilaUseCase;
-import br.com.fiap.vagazero.risco.application.LimparRiscoUseCase;
 
 /**
  * Popula o cenario de demonstracao. Reusa os servicos de aplicacao de cada
@@ -33,6 +34,8 @@ public class SeedService {
 
     private static final String ESPECIALIDADE = "Oftalmologia";
     private static final String CNS_PACIENTE_FIXO_MIGRATION = "700003054441234";
+    private static final Set<String> TABELAS_PRESERVADAS_NO_RESET =
+            Set.of("usuario", "paciente", "flyway_schema_history");
     private static final BigDecimal UNIDADE_LATITUDE = new BigDecimal("-23.589000");
     private static final BigDecimal UNIDADE_LONGITUDE = new BigDecimal("-46.642000");
 
@@ -78,24 +81,22 @@ public class SeedService {
     private final VagaService vagaService;
     private final AgendamentoService agendamentoService;
     private final FilaService filaService;
-    private final LimparRiscoUseCase limparRiscoUseCase;
-    private final LimparFilaUseCase limparFilaUseCase;
     private final LimparAgendaUseCase limparAgendaUseCase;
+    private final TruncadorDeTabelas truncadorDeTabelas;
     private final RelogioAjustavel relogio;
 
     public SeedService(
             UnidadeService unidadeService, PacienteService pacienteService, VagaService vagaService,
             AgendamentoService agendamentoService, FilaService filaService,
-            LimparRiscoUseCase limparRiscoUseCase, LimparFilaUseCase limparFilaUseCase,
-            LimparAgendaUseCase limparAgendaUseCase, RelogioAjustavel relogio) {
+            LimparAgendaUseCase limparAgendaUseCase, TruncadorDeTabelas truncadorDeTabelas,
+            RelogioAjustavel relogio) {
         this.unidadeService = unidadeService;
         this.pacienteService = pacienteService;
         this.vagaService = vagaService;
         this.agendamentoService = agendamentoService;
         this.filaService = filaService;
-        this.limparRiscoUseCase = limparRiscoUseCase;
-        this.limparFilaUseCase = limparFilaUseCase;
         this.limparAgendaUseCase = limparAgendaUseCase;
+        this.truncadorDeTabelas = truncadorDeTabelas;
         this.relogio = relogio;
     }
 
@@ -155,9 +156,9 @@ public class SeedService {
         return LocalDateTime.now(relogio);
     }
 
+    @Transactional
     public SeedResultado resetar() {
-        limparRiscoUseCase.limparTudo();
-        limparFilaUseCase.limparTudo();
+        truncadorDeTabelas.truncarTudoExceto(TABELAS_PRESERVADAS_NO_RESET);
         limparAgendaUseCase.limparTudo(CNS_PACIENTE_FIXO_MIGRATION);
         relogio.resetar();
         return semear();

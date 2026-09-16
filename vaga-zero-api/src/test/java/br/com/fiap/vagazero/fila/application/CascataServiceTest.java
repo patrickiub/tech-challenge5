@@ -37,7 +37,6 @@ import br.com.fiap.vagazero.agenda.domain.Agendamento;
 import br.com.fiap.vagazero.agenda.domain.StatusAgendamento;
 import br.com.fiap.vagazero.agenda.domain.StatusVaga;
 import br.com.fiap.vagazero.agenda.domain.Vaga;
-import br.com.fiap.vagazero.fila.domain.AvisoPendenteRepositorio;
 import br.com.fiap.vagazero.fila.domain.Convite;
 import br.com.fiap.vagazero.fila.domain.ConviteIndisponivelException;
 import br.com.fiap.vagazero.fila.domain.ConviteRepositorio;
@@ -71,8 +70,6 @@ class CascataServiceTest {
     private ConsultaUnidadeUseCase consultaUnidadeUseCase;
     @Mock
     private EventoPublisher eventoPublisher;
-    @Mock
-    private AvisoPendenteRepositorio avisoPendenteRepositorio;
 
     private Clock clock;
     private CascataService cascataService;
@@ -81,7 +78,7 @@ class CascataServiceTest {
     void configurar() {
         clock = Clock.fixed(Instant.parse("2026-09-13T10:00:00Z"), ZoneOffset.UTC);
         cascataService = new CascataService(
-                itemFilaRepositorio, conviteRepositorio, avisoPendenteRepositorio, vagaCascataUseCase,
+                itemFilaRepositorio, conviteRepositorio, vagaCascataUseCase,
                 agendamentoCascataUseCase, consultaPacienteUseCase, consultaUnidadeUseCase, eventoPublisher, clock,
                 1800L);
     }

@@ -14,6 +14,4 @@ public interface UnidadeRepositorio {
     void excluir(Long id);
 
     boolean existePorId(Long id);
-
-    void excluirTudo();
 }

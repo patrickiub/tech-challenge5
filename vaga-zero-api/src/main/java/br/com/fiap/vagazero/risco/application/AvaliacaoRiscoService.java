@@ -40,7 +40,7 @@ import br.com.fiap.vagazero.shared.kafka.KafkaTopics;
  * ja apareca refletida na proxima consulta.
  */
 @Service
-public class AvaliacaoRiscoService implements LimparRiscoUseCase {
+public class AvaliacaoRiscoService {
 
     private final ConsultaAgendamentoUseCase consultaAgendamentoUseCase;
     private final VagaCascataUseCase vagaCascataUseCase;
@@ -137,11 +137,6 @@ public class AvaliacaoRiscoService implements LimparRiscoUseCase {
                 consultaAgendamentoUseCase.cancelar(agendamento.id());
             }
         }
-    }
-
-    @Override
-    public void limparTudo() {
-        avaliacaoRiscoRepositorio.excluirTudo();
     }
 
     private EntradaScoring apurarEntrada(

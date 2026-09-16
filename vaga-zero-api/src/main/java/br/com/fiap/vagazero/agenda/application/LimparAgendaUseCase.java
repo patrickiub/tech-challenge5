@@ -1,16 +1,18 @@
 package br.com.fiap.vagazero.agenda.application;
 
 /**
- * Porto usado pelo modulo demo para limpar agenda no reset. Deve ser
- * chamado por ultimo (depois de risco e fila), pois vaga e paciente sao
- * referenciados por convite, item_fila e avaliacao_risco.
+ * Porto usado pelo modulo demo para remover, no reset, os pacientes que nao
+ * sao o fixo de demonstracao. As demais tabelas (agendamento, vaga, unidade
+ * e todo o resto) sao limpas antes disso por um TRUNCATE generico
+ * (TruncadorDeTabelas) - paciente fica de fora dele porque uma linha
+ * precisa sobreviver, entao a limpeza dela e sempre a exclusao seletiva
+ * feita aqui.
  */
 public interface LimparAgendaUseCase {
 
     /**
-     * Remove agendamentos, vagas, unidades e pacientes, preservando o
-     * paciente fixo (cnsPacienteFixo) criado pela migration V2 e vinculado
-     * ao usuario de login PACIENTE de demonstracao.
+     * Remove todos os pacientes exceto o fixo (cnsPacienteFixo) criado pela
+     * migration V2 e vinculado ao usuario de login PACIENTE de demonstracao.
      */
     void limparTudo(String cnsPacienteFixo);
 }
